@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+  </head>
+  <style>
+    .door {
+      background: rgba(135, 108, 153, 0.5);
+    }
+    .outer {
+      display: table;
+      width: 100%;
+      height: 100%;
+      text-align: center;
+    }
+    .div-auth {
+      margin:25% 25% 25% 25%;
+      padding: 25px;
+      border-radius: 5px;
+      box-shadow: 0 0 5px 2px rgba(135, 108, 153, 1);
+      background: rgba(77, 56, 75, 1);
+      border-top: 10px solid rgba(135, 108, 153, 1);
+      font-family: 'Oswald', sans-serif;
+      color: white;
+    }
+    .div-auth button {
+      width: 80%;
+      background: none;
+      border: 1px solid rgba(135, 108, 153, 1);
+      color: white;
+      font-size: 14px;
+      font-weight: 200;
+      cursor: pointer;
+      transition: box-shadow .4s ease;
+    }
+    .div-auth input {
+      width: 80%;
+      background: none;
+      border: none;
+      border-bottom: 1px solid rgba(135, 108, 153, 1);
+      margin-bottom: 10px;
+      color: white;
+      font-size: 14px;
+      font-weight: 200;
+      text-align: center;
+    }
+    ::-webkit-input-placeholder {
+      color: white;
+    }
+  </style>
+  <body class="door">
+    <div class="outer">
+      <div class="div-auth">
+        <h2>Вход</h2>
+        <div class="form">
+          <input type="text" placeholder="Пользователь">
+          <button>Вход</button>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

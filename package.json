@@ -1,0 +1,14 @@
+{
+  "name": "kp_chat",
+  "version": "1.0.0",
+  "description": "",
+  "main": "source/main.js",
+  "scripts": {
+    "start": "electron ."
+  },
+  "author": "Kravtsov Maxim",
+  "license": "ISC",
+  "devDependencies": {
+    "electron": "^6.0.10"
+  }
+}

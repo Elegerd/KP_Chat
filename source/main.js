@@ -32,7 +32,7 @@ function createWindow() {
         mainWindow = null;
     });
     // Отображаем средства разработчика.
-    // mainWindow.webContents.openDevTools()
+    mainWindow.webContents.openDevTools()
 }
 
 // Этот метод будет вызван когда Electron закончил

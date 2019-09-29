@@ -1,7 +1,18 @@
 const net = require('net');
-
+const getRandomInRange = require('./algorithm/random_number');
+const testMillerRabin = require('./algorithm/test_miller_rabin');
 class Client {
     constructor(name, port, address) {
+        let p, q;
+        do {
+            p = this.getPrimeNumber();
+        } while (p % 4 !== 3);
+        do {
+            q = this.getPrimeNumber();
+        } while (q % 4 !== 3);
+        this.key_p = p;
+        this.key_q = q;
+        this.public_key = p * q;
         this.name = name || "Guest" + Math.floor(Math.random() * 101);
         this.socket = new net.Socket();
         this.address = address;
@@ -12,6 +23,10 @@ class Client {
     init() {
         let client = this;
         client.socket.connect(client.port, client.address, () => {
+            let data = {
+                "name" : this.name,
+            }
+            client.socket.write(JSON.stringify(data));
             console.log(`Client connected to: [${client.name}] ${client.address} :  ${client.port}`);
         });
 
@@ -23,8 +38,7 @@ class Client {
             let obj = JSON.parse(data);
             let box = document.getElementById('chat-box');
             let span = document.createElement('div');
-            let date = new Date();
-            span.innerHTML = obj.name + " says: "  + obj.message;
+            span.innerHTML = "[" + this.public_key + "] " + obj.name + " says: "  + obj.message + " ";
             box.appendChild(span);
             console.log(`Client received: ${data}`);
         });
@@ -45,6 +59,15 @@ class Client {
         };
         let client = this;
         client.socket.write(JSON.stringify(data));
+    }
+
+    getPrimeNumber() {
+        let prime, isPrimeNumber;
+        do {
+            prime = getRandomInRange(2, 1024);
+            isPrimeNumber = testMillerRabin(prime, 10);
+        } while (!isPrimeNumber);
+        return prime;
     }
 }
 module.exports = Client;

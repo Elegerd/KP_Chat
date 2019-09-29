@@ -20,15 +20,21 @@
     width: 100%;
 }
 .chat-message input {
-    width: calc(100% - 126px);
     border: 1px solid rgba(135, 108, 153, 1);
     color: black;
     font-size: 14px;
-    font-weight: 200;
     margin-left: 10px;
 }
+#chat-input {
+    width: 70%;
+}
+#chat-public-key, #chat-session-key {
+    width: 5%;
+}
 .chat-message button {
-    width: 100px;
+    width: 10%;
+    float: right;
+    margin-left: 10px;
     margin-right: 10px;
     background: rgba(77, 56, 75, 1);
     border: 1px solid rgba(135, 108, 153, 1);

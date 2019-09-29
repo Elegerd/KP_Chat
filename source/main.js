@@ -1,13 +1,9 @@
-const net = require('net');
 const url = require('url');
 const path = require('path');
-const {app, BrowserWindow, Menu} = require('electron');
+const {app, BrowserWindow} = require('electron');
 
 let mainWindow = null;
-let socketClient = null;
-let HOST = 'localhost';
-let PORT = 3000;
-
+process.env['ELECTRON_DISABLE_SECURITY_WARNINGS'] = 'true';
 
 function createWindow() {
     // Создаем окно браузера.
@@ -15,12 +11,15 @@ function createWindow() {
       width: 900,
       height: 600,
       title: "Chat",
+      webPreferences: {
+        nodeIntegration: true,
+      },
       autoHideMenuBar: true,
     });
 
     // и загружаем index.html в приложение.
     mainWindow.loadURL(url.format({
-      pathname: path.join(__dirname, 'index.html'),
+      pathname: path.join(__dirname, 'index/index.html'),
       protocol: 'file:',
       slashes: true
     }));
@@ -33,7 +32,7 @@ function createWindow() {
         mainWindow = null;
     });
     // Отображаем средства разработчика.
-    mainWindow.webContents.openDevTools()
+    // mainWindow.webContents.openDevTools()
 }
 
 // Этот метод будет вызван когда Electron закончил
@@ -45,7 +44,7 @@ app.on('window-all-closed', function() {
     // В OS X это характерно для приложений и их меню,
     // чтобы оставаться активными, пока пользователь явно не завершит работу
     // при помощи Cmd + Q
-    if (process.platform != 'darwin') {
+    if (process.platform !== 'darwin') {
         app.quit();
     }
 });
@@ -56,21 +55,4 @@ app.on('activate', function() {
   if (mainWindow === null) {
     createWindow();
   }
-});
-
-console.log('Try to connect');
-socketClient = net.connect(PORT, HOST,  () => {
-    socketClient.write('Connected to server!');
-});
-
-socketClient.on('close', () => {
-    console.log('Disconnected from server');
-});
-
-socketClient.on('data', (data) => {
-    console.log(data.toString());
-});
-
-socketClient.on('error', (err) => {
-    console.error(err);
 });

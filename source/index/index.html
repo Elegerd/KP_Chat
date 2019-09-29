@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" type="text/css" href="index.css">
+    <link rel="stylesheet" type="text/css" href="chat_room.css">
+    <script src="index.js"></script>
+  </head>
+  <body>
+    <div id="auth" class="div-auth">
+      <h2>Enter the chat</h2>
+      <div class="form">
+        <input id="client-name" type="text" placeholder="Username">
+        <button id="btn-auth" onclick="connect()">Sign in</button>
+      </div>
+    </div>
+    <div id="chat" class="chat-space">
+      <div class="chat-room" id="chat-box">
+      </div>
+      <div class="chat-message">
+        <input id="chat-input" type="text" placeholder="Username">
+        <button id="btn-send" onclick="send()">Send</button>
+      </div>
+    </div>
+  </body>
+</html>

@@ -1,0 +1,40 @@
+.chat-space {
+    display: none;
+    height: 100%;
+    overflow: hidden;
+}
+.chat-space span {
+
+}
+.chat-room {
+    height: 90%;
+    margin: 10px;
+    background: white;
+    border-radius: 5px;
+    box-shadow: 0 0 5px 2px rgba(135, 108, 153, 1);
+    padding: 10px 0 0 10px;
+    overflow-y: scroll;
+}
+.chat-message {
+    height: 10%;
+    width: 100%;
+}
+.chat-message input {
+    width: calc(100% - 126px);
+    border: 1px solid rgba(135, 108, 153, 1);
+    color: black;
+    font-size: 14px;
+    font-weight: 200;
+    margin-left: 10px;
+}
+.chat-message button {
+    width: 100px;
+    margin-right: 10px;
+    background: rgba(77, 56, 75, 1);
+    border: 1px solid rgba(135, 108, 153, 1);
+    color: white;
+    font-size: 14px;
+    font-weight: 200;
+    cursor: pointer;
+    transition: box-shadow .4s ease;
+}

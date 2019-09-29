@@ -1,31 +1,50 @@
-let net = require('net');
- 
-// Configuration parameters
-let HOST = 'localhost';
-let PORT = 3000;
+const net = require('net');
+const HOST = 'localhost';
+const PORT = 3000;
 
-// Create Server instance
-let server = net.createServer(onClientConnected);
+class Server {
+  constructor(port, address) {
+    this.port = port;
+    this.address = address;
+    this.connectedSockets = new Set();
+    this.init();
+  }
 
-server.listen(PORT, HOST, function() {
-  console.log('Server listening on %j', server.address());
-});
+  init() {
+    let server = this;
 
-function onClientConnected(sock) {
-  let remoteAddress = sock.remoteAddress + ':' + sock.remotePort;
-  console.log('New client connected: %s', remoteAddress);
+    this.connectedSockets.broadcast = function(data) {
+      for (let sock of this) {
+          sock.write(data);
+      }
+    };
 
-  sock.on('data', function(data) {
-    console.log('%s Says: %s', remoteAddress, data);
-    sock.write(data);
-    sock.write('Hello, client');
-  });
+    let onClientConnected = (sock) => {
+      this.connectedSockets.add(sock);
+      let clientName = `${sock.remoteAddress}:${sock.remotePort}`;
+      console.log(`New client connected: ${clientName}`);
 
-  sock.on('close', function () {
-    console.log('Connection from %s closed', remoteAddress);
-  });
+      sock.on('data', (data) => {
+        console.log(`${clientName} Says: ${data}`);
+        this.connectedSockets.broadcast(data, sock);
+      });
 
-  sock.on('error', function (err) {
-    console.log('Connection %s error: %s', remoteAddress, err.message);
-  });
-};
+      sock.on('close', () => {
+        console.log(`Connection from ${clientName} closed`);
+        this.connectedSockets.delete(sock);
+      });
+
+      sock.on('error', (err) => {
+        console.log(`Connection ${clientName} error: ${err.message}`);
+      });
+    };
+
+    server.connection = net.createServer(onClientConnected);
+
+    server.connection.listen(PORT, HOST, function() {
+      console.log(`Server started at: ${HOST}:${PORT}`);
+    });
+  }
+}
+
+new Server(PORT, HOST);

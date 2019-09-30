@@ -19,19 +19,21 @@ class Server {
       }
     };
 
-    this.connectedSockets.getUsers = function(sock) {
+    this.connectedSockets.getUsers = function(socks) {
       let data = {
         "users" : [],
       };
-      for (let sock of this) {
-        data.users.push(sock.username)
+      for (let sock of socks) {
+        if(sock.username)
+          data.users.push(sock.username)
       }
-      sock.write(JSON.stringify(data));
+      for (let sock of socks) {
+        sock.write(JSON.stringify(data));
+      }
     };
 
     let onClientConnected = (sock) => {
       this.connectedSockets.add(sock);
-      this.connectedSockets.getUsers(sock);
       let clientName = `${sock.remoteAddress}:${sock.remotePort}`;
       console.log(`New client connected: ${clientName}`);
 
@@ -41,12 +43,15 @@ class Server {
         if (obj.message) {
           console.log(`${clientName} Says: ${obj.message}`);
           this.connectedSockets.broadcast(data);
+        } else {
+          this.connectedSockets.getUsers(this.connectedSockets);
         }
       });
 
       sock.on('close', () => {
         console.log(`Connection from ${clientName} closed`);
         this.connectedSockets.delete(sock);
+        this.connectedSockets.getUsers(this.connectedSockets);
       });
 
       sock.on('error', (err) => {

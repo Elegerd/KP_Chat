@@ -7,7 +7,7 @@
 
 }
 .chat-room {
-    height: 90%;
+    height: 85%;
     margin: 10px;
     background: white;
     border-radius: 5px;
@@ -28,19 +28,23 @@
 #chat-input {
     width: 70%;
 }
-#chat-public-key, #chat-session-key {
-    width: 5%;
+#chat-public-key, #chat-session-key, #chat-friend-public-key, #chat-friend-name {
+    width: 10%;
 }
 .chat-message button {
-    width: 10%;
+    width: 15%;
     float: right;
-    margin-left: 10px;
-    margin-right: 10px;
+    clear: right;
+    margin: 2px 10px;
+    border: 0;
+    padding: 0;
     background: rgba(77, 56, 75, 1);
-    border: 1px solid rgba(135, 108, 153, 1);
     color: white;
     font-size: 14px;
     font-weight: 200;
     cursor: pointer;
     transition: box-shadow .4s ease;
+}
+#chat-public-key, #chat-session-key, #chat-friend-public-key, #chat-friend-name ::-webkit-input-placeholder {
+    color: black;
 }

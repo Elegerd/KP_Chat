@@ -11,7 +11,7 @@
       <h2>Enter the chat</h2>
       <div class="form">
         <input id="client-name" type="text" placeholder="Username">
-        <button id="btn-auth" onclick="connect()">Sign in</button>
+        <button id="btn-auth" onclick="connectServer()">Sign in</button>
       </div>
     </div>
     <div id="chat" class="chat-space">
@@ -19,9 +19,12 @@
       </div>
       <div class="chat-message">
         <input id="chat-input" type="text">
-        <input id="chat-public-key" type="text">
-        <input id="chat-session-key" type="text">
-        <button id="btn-send" onclick="send()">Send</button>
+        <button id="btn-send" onclick="send()">Send</button><br/>
+        <input id="chat-public-key" type="text" disabled>
+        <input id="chat-session-key" type="text" placeholder="Session key">
+        <input id="chat-friend-public-key" type="text" placeholder="Public key to connect">
+        <input id="chat-friend-name" type="text" placeholder="Name to connect">
+        <button id="btn-set" onclick="connect()">Connect</button>
       </div>
     </div>
   </body>

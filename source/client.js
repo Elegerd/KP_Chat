@@ -1,5 +1,7 @@
 const net = require('net');
 const getRandomInRange = require('./algorithm/random_number');
+const extendedEuclidean = require('./algorithm/algorithm_euclidean');
+const modExponentiation = require('./algorithm/exponent_mod');
 const testMillerRabin = require('./algorithm/test_miller_rabin');
 
 class Client {
@@ -11,6 +13,8 @@ class Client {
         do {
             q = this.getPrimeNumber();
         } while (q % 4 !== 3);
+        if (p < q)
+            [p, q] = [q, p];
         this.key_p = p;
         this.key_q = q;
         this.public_key = p * q;
@@ -67,18 +71,35 @@ class Client {
     }
 
     sendMessage(message) {
+        let arrayM = new Int8Array(message.split('').map(x => x.charCodeAt(0)));
+        let arrayC = modExponentiation(arrayM[0], 2, this.public_key);
+        console.log("m: ", arrayM[0]);
+        console.log("c: ", arrayC);
+        console.log("PUBLIC: ", this.public_key);
+        console.log("p: ", this.key_p, "q: ", this.key_q);
+        let [a, b] = extendedEuclidean(this.key_p, this.key_q);
+        console.log("a: ", a, "b: ", b);
+        let r = modExponentiation(arrayC, Math.floor((this.key_p + 1) / 4), this.key_p);
+        let s = modExponentiation(arrayC, Math.floor((this.key_q + 1) / 4), this.key_q);
+        console.log("r: ", r, "s: ", s);
+        let t1 = (a * this.key_p * s) % this.public_key;
+        let t2 = (b * this.key_q * r) % this.public_key;
+        console.log("t1: ", t1, "t2: ", t2);
+        let x = (t1 + t2) % this.public_key;
+        let y = (t1 - t2) % this.public_key;
+        console.log("x: ", x, "y: ", y, "-x: ", -x, "-y: ", -y);
+        let client = this;
         let data = {
             "name" : this.name,
-            "message": message,
+            "message": arrayC,
         };
-        let client = this;
         client.socket.write(JSON.stringify(data));
     }
 
     getPrimeNumber() {
         let prime, isPrimeNumber;
         do {
-            prime = getRandomInRange(2, 1024);
+            prime = getRandomInRange(2, 124);
             isPrimeNumber = testMillerRabin(prime, 10);
         } while (!isPrimeNumber);
         return prime;

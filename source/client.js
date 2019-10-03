@@ -47,8 +47,7 @@ class Client {
                 let span = document.createElement('div');
                 span.innerHTML = obj.name + " says: " + obj.message + " ";
                 box.appendChild(span);
-            }
-            if (obj.users) {
+            } else if (obj.users) {
                 let box = document.getElementById('chat-box');
                 let span = document.createElement('div');
                 let text = "Chat now: ";
@@ -71,23 +70,33 @@ class Client {
     }
 
     sendMessage(message) {
-        let arrayM = new Int8Array(message.split('').map(x => x.charCodeAt(0)));
-        let arrayC = modExponentiation(arrayM[0], 2, this.public_key);
-        console.log("m: ", arrayM[0]);
+        let arrayM = message.split('').map(x => x.charCodeAt(0));
+        let arrayC = arrayM.map(m => modExponentiation(m, 2, this.public_key));
+        console.log("m: ", arrayM);
         console.log("c: ", arrayC);
         console.log("PUBLIC: ", this.public_key);
         console.log("p: ", this.key_p, "q: ", this.key_q);
         let [a, b] = extendedEuclidean(this.key_p, this.key_q);
         console.log("a: ", a, "b: ", b);
-        let r = modExponentiation(arrayC, Math.floor((this.key_p + 1) / 4), this.key_p);
-        let s = modExponentiation(arrayC, Math.floor((this.key_q + 1) / 4), this.key_q);
+        let r = modExponentiation(arrayC[0], Math.floor((this.key_p + 1) / 4), this.key_p);
+        let s = modExponentiation(arrayC[0], Math.floor((this.key_q + 1) / 4), this.key_q);
         console.log("r: ", r, "s: ", s);
-        let t1 = (a * this.key_p * s) % this.public_key;
-        let t2 = (b * this.key_q * r) % this.public_key;
+        let t1 = Math.floor(a * this.key_p * s) % this.public_key;
+        let t2 = Math.floor(b * this.key_q * r) % this.public_key;
         console.log("t1: ", t1, "t2: ", t2);
         let x = (t1 + t2) % this.public_key;
         let y = (t1 - t2) % this.public_key;
-        console.log("x: ", x, "y: ", y, "-x: ", -x, "-y: ", -y);
+        if (Math.abs(Math.abs(x) - this.public_key) < Math.abs(x))
+            if (x > 0)
+                x -= this.public_key;
+            else
+                x +=  this.public_key;
+        if (Math.abs(Math.abs(y) - this.public_key) < Math.abs(y))
+            if (y > 0)
+                y -=  this.public_key;
+            else
+                y += this.public_key;
+        console.log("x: ", x % this.public_key, "y: ", y % this.public_key, "-x: ", -x % this.public_key, "-y: ", -y % this.public_key);
         let client = this;
         let data = {
             "name" : this.name,
@@ -99,7 +108,7 @@ class Client {
     getPrimeNumber() {
         let prime, isPrimeNumber;
         do {
-            prime = getRandomInRange(2, 124);
+            prime = getRandomInRange(16, 128);
             isPrimeNumber = testMillerRabin(prime, 10);
         } while (!isPrimeNumber);
         return prime;

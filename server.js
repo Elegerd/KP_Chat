@@ -19,16 +19,22 @@ class Server {
       }
     };
 
-    this.connectedSockets.getUsers = function(socks) {
+    this.connectedSockets.getUsers = function() {
       let data = {
         "users" : [],
       };
-      for (let sock of socks) {
+      for (let sock of this) {
         if(sock.username)
           data.users.push(sock.username)
       }
-      for (let sock of socks) {
-        sock.write(JSON.stringify(data));
+      return data;
+    };
+
+    this.connectedSockets.sendSock = function(name, data) {
+      for (let sock of this) {
+        if (sock.username && sock.username === name) {
+          sock.write(data);
+        }
       }
     };
 
@@ -41,17 +47,38 @@ class Server {
         let obj = JSON.parse(data);
         sock.username = obj.name;
         if (obj.message) {
-          console.log(`${clientName} Says: ${obj.message}`);
+          console.log(`${clientName} says: ${obj.message}`);
           this.connectedSockets.broadcast(data);
+        } else if (obj.event) {
+          if (obj.event === "Step_3") {
+            console.log("\n[Crypto protocol start]");
+            console.log(obj.event);
+            console.log(obj);
+            this.connectedSockets.sendSock(obj.friend_name, data);
+          } else if (obj.event === "Step_4") {
+            console.log(obj.event);
+            console.log(obj);
+            this.connectedSockets.sendSock(obj.friend_name, data)
+          } else if (obj.event === "Step_5") {
+            console.log(obj.event);
+            console.log(obj);
+            this.connectedSockets.sendSock(obj.friend_name, data)
+          } else if (obj.event === "Step_6") {
+            console.log(obj.event);
+            console.log(obj);
+            this.connectedSockets.sendSock(obj.friend_name, data)
+          }
         } else {
-          this.connectedSockets.getUsers(this.connectedSockets);
+          let users = this.connectedSockets.getUsers();
+          this.connectedSockets.broadcast(JSON.stringify(users))
         }
       });
 
       sock.on('close', () => {
         console.log(`Connection from ${clientName} closed`);
         this.connectedSockets.delete(sock);
-        this.connectedSockets.getUsers(this.connectedSockets);
+        let users = this.connectedSockets.getUsers();
+        this.connectedSockets.broadcast(JSON.stringify(users))
       });
 
       sock.on('error', (err) => {

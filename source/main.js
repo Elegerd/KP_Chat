@@ -8,7 +8,7 @@ process.env['ELECTRON_DISABLE_SECURITY_WARNINGS'] = 'true';
 function createWindow() {
     // Создаем окно браузера.
     mainWindow = new BrowserWindow({
-      width: 900,
+      width: 1000,
       height: 600,
       title: "Chat",
       webPreferences: {

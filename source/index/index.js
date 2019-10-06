@@ -11,8 +11,18 @@ function connectServer() {
     document.getElementById('chat').style.display = "inline"
 }
 
-function connect() {
-
+function userLinking() {
+    const friendKey = document.getElementById("chat-friend-public-key");
+    const friendName = document.getElementById("chat-friend-name");
+    if (friendKey.value !== "" && friendName.value !== "") {
+        let data = {
+            friend_key: friendKey.value,
+            friend_name: friendName.value,
+        };
+        client.linkUser(data);
+        friendKey.value = "";
+        friendName.value = "";
+    }
 }
 
 function send() {

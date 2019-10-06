@@ -38,6 +38,6 @@ body {
     font-weight: 200;
     text-align: center;
 }
-::-webkit-input-placeholder {
+#client-name::-webkit-input-placeholder {
     color: white;
 }

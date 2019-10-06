@@ -29,7 +29,7 @@
     width: 70%;
 }
 #chat-public-key, #chat-session-key, #chat-friend-public-key, #chat-friend-name {
-    width: 10%;
+    width: 15%;
 }
 .chat-message button {
     width: 15%;
@@ -45,6 +45,15 @@
     cursor: pointer;
     transition: box-shadow .4s ease;
 }
-#chat-public-key, #chat-session-key, #chat-friend-public-key, #chat-friend-name ::-webkit-input-placeholder {
-    color: black;
+#chat-public-key::-webkit-input-placeholder {
+    color: rgba(77, 56, 75, 1);
+}
+#chat-session-key::-webkit-input-placeholder {
+    color: rgba(77, 56, 75, 1);
+}
+#chat-friend-public-key::-webkit-input-placeholder {
+    color: rgba(77, 56, 75, 1);
+}
+#chat-friend-name::-webkit-input-placeholder {
+    color: rgba(77, 56, 75, 1);
 }

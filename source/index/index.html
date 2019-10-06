@@ -21,10 +21,10 @@
         <input id="chat-input" type="text">
         <button id="btn-send" onclick="send()">Send</button><br/>
         <input id="chat-public-key" type="text" disabled>
-        <input id="chat-session-key" type="text" placeholder="Session key">
-        <input id="chat-friend-public-key" type="text" placeholder="Public key to connect">
+        <input id="chat-session-key" type="text" placeholder="Session key" disabled>
         <input id="chat-friend-name" type="text" placeholder="Name to connect">
-        <button id="btn-set" onclick="connect()">Connect</button>
+        <input id="chat-friend-public-key" type="text" placeholder="Key to connect">
+        <button id="btn-set" onclick="userLinking()">Connect</button>
       </div>
     </div>
   </body>

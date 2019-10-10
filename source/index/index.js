@@ -8,20 +8,16 @@ function connectServer() {
     client = new Client(name, PORT, HOST);
     let auth = document.getElementById("auth");
     auth.parentNode.removeChild(auth);
-    document.getElementById('chat').style.display = "inline"
+    document.getElementById('chat').style.display = "flex"
 }
 
 function userLinking() {
-    const friendKey = document.getElementById("chat-friend-public-key");
     const friendName = document.getElementById("chat-friend-name");
-    if (friendKey.value !== "" && friendName.value !== "") {
+    if (friendName.value !== "") {
         let data = {
-            friend_key: friendKey.value,
             friend_name: friendName.value,
         };
         client.linkUser(data);
-        friendKey.value = "";
-        friendName.value = "";
     }
 }
 

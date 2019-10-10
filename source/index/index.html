@@ -18,13 +18,19 @@
       <div class="chat-room" id="chat-box">
       </div>
       <div class="chat-message">
-        <input id="chat-input" type="text">
-        <button id="btn-send" onclick="send()">Send</button><br/>
-        <input id="chat-public-key" type="text" disabled>
-        <input id="chat-session-key" type="text" placeholder="Session key" disabled>
-        <input id="chat-friend-name" type="text" placeholder="Name to connect">
-        <input id="chat-friend-public-key" type="text" placeholder="Key to connect">
-        <button id="btn-set" onclick="userLinking()">Connect</button>
+        <div class="chat-div">
+          <input id="chat-input" type="text">
+          <button id="btn-send" onclick="send()">Send</button>
+        </div>
+        <div class="chat-div">
+          <input id="chat-public-key" type="text" disabled>
+          <input id="chat-session-key" type="text" placeholder="Session key" disabled>
+        </div>
+        <div class="chat-div">
+          <input id="chat-friend-name" type="text" placeholder="Friend's name">
+          <input id="chat-friend-public-key" type="text" placeholder="Friend's key" disabled>
+          <button id="btn-set" onclick="userLinking()">Connect</button>
+        </div>
       </div>
     </div>
   </body>

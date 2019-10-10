@@ -1,6 +1,4 @@
 const net = require('net');
-const HOST = 'localhost';
-const PORT = 3000;
 
 class Server {
   constructor(port, address) {
@@ -50,21 +48,29 @@ class Server {
           console.log(`${clientName} says: ${obj.message}`);
           this.connectedSockets.broadcast(data);
         } else if (obj.event) {
-          if (obj.event === "Step_3") {
+          if (obj.event === "Step_1") {
             console.log("\n[Crypto protocol start]");
-            console.log(obj.event);
+            console.log('\n', obj.event);
+            console.log(obj);
+            this.connectedSockets.sendSock(obj.friend_name, data);
+          } else if (obj.event === "Step_2") {
+            console.log('\n',obj.event);
+            console.log(obj);
+            this.connectedSockets.sendSock(obj.friend_name, data);
+          } else if (obj.event === "Step_3") {
+            console.log('\n',obj.event);
             console.log(obj);
             this.connectedSockets.sendSock(obj.friend_name, data);
           } else if (obj.event === "Step_4") {
-            console.log(obj.event);
+            console.log('\n',obj.event);
             console.log(obj);
             this.connectedSockets.sendSock(obj.friend_name, data)
           } else if (obj.event === "Step_5") {
-            console.log(obj.event);
+            console.log('\n',obj.event);
             console.log(obj);
             this.connectedSockets.sendSock(obj.friend_name, data)
           } else if (obj.event === "Step_6") {
-            console.log(obj.event);
+            console.log('\n',obj.event);
             console.log(obj);
             this.connectedSockets.sendSock(obj.friend_name, data)
           }
@@ -88,10 +94,9 @@ class Server {
 
     server.connection = net.createServer(onClientConnected);
 
-    server.connection.listen(PORT, HOST, function() {
-      console.log(`Server started at: ${HOST}:${PORT}`);
+    server.connection.listen(server.port, server.address, function() {
+      console.log(`Server started at: ${server.address}:${server.port}`);
     });
   }
 }
-
-new Server(PORT, HOST);
+module.exports = Server;

@@ -4,6 +4,9 @@ const extendedEuclidean = require('./algorithm/algorithm_euclidean');
 const modExponentiation = require('./algorithm/exponent_mod');
 const testMillerRabin = require('./algorithm/test_miller_rabin');
 
+const Server = require('./server');
+let server = null;
+
 class Client {
     constructor(name, port, address) {
         let p, q;
@@ -39,10 +42,6 @@ class Client {
             console.log(`Client connected to: [${client.name}] ${client.address} :  ${client.port}`);
         });
 
-        client.socket.on('close', () => {
-            console.log('Client closed');
-        });
-
         client.socket.on('data', (data) => {
             let obj = JSON.parse(data);
             if (obj.message) {
@@ -64,12 +63,41 @@ class Client {
                 span.innerHTML = text;
                 box.appendChild(span);
             } else if (obj.event) {
-                if (obj.event === "Step_3") {
+                if (obj.event === "Step_1") {
+                    client.friend_name = obj.name;
+                    client.friend_key = obj.key;
                     const friendKey = document.getElementById("chat-friend-public-key");
                     const friendName = document.getElementById("chat-friend-name");
+                    friendKey.value = client.friend_key;
+                    friendName.value = client.friend_name;
+                    friendName.disable = true;
+                    let encryptedData = {
+                        name: client.name,
+                        event: "Step_2",
+                        key: client.public_key,
+                        friend_name: client.friend_name,
+                    };
+                    client.socket.write(JSON.stringify(encryptedData));
+                } else if (obj.event === "Step_2") {
+                    client.friend_name = obj.name;
+                    client.friend_key = obj.key;
+                    const friendKey = document.getElementById("chat-friend-public-key");
+                    const friendName = document.getElementById("chat-friend-name");
+                    friendKey.value = client.friend_key;
+                    friendName.value = client.friend_name;
+                    friendName.disable = true;
                     client.setR();
-                    client.friend_key = friendKey.value;
-                    client.friend_name = friendName.value;
+                    let C = modExponentiation(client.R[1], 2, client.friend_key);
+                    let encryptedData = {
+                        name: client.name,
+                        event: "Step_3",
+                        encrypted_message: C,
+                        friend_key: client.friend_key,
+                        friend_name: client.friend_name,
+                    };
+                    client.socket.write(JSON.stringify(encryptedData));
+                } else if (obj.event === "Step_3") {
+                    client.setR();
                     client.encrypted_message = obj.encrypted_message;
                     let C = modExponentiation(client.R[1], 2, client.friend_key);
                     let encryptedData = {
@@ -80,8 +108,6 @@ class Client {
                         friend_name: client.friend_name,
                     };
                     client.socket.write(JSON.stringify(encryptedData));
-                    friendKey.value = "";
-                    friendName.value = "";
                 } else if (obj.event === "Step_4") {
                     client.encrypted_message = obj.encrypted_message;
                     let C = modExponentiation(client.R[2], 2, client.friend_key);
@@ -122,7 +148,8 @@ class Client {
         });
 
         client.socket.on('close', () => {
-            console.log('Client closed');
+            server = new Server(this.port, this.address);
+            client.socket.connect(this.port, this.address);
         });
 
         client.socket.on('error', (err) => {
@@ -187,18 +214,29 @@ class Client {
         client.socket.write(JSON.stringify(data));
     }
 
+    // linkUser(data) {
+    //     let client = this;
+    //     client.setR();
+    //     client.friend_key = data.friend_key;
+    //     client.friend_name = data.friend_name;
+    //     let C = modExponentiation(client.R[1], 2, client.friend_key);
+    //     let encryptedData = {
+    //         name: client.name,
+    //         event: "Step_3",
+    //         encrypted_message: C,
+    //         friend_key: client.friend_key,
+    //         friend_name: client.friend_name,
+    //     };
+    //     client.socket.write(JSON.stringify(encryptedData));
+    // }
+
     linkUser(data) {
         let client = this;
-        client.setR();
-        client.friend_key = data.friend_key;
-        client.friend_name = data.friend_name;
-        let C = modExponentiation(client.R[1], 2, client.friend_key);
         let encryptedData = {
             name: client.name,
-            event: "Step_3",
-            encrypted_message: C,
-            friend_key: client.friend_key,
-            friend_name: client.friend_name,
+            event: "Step_1",
+            friend_name: data.friend_name,
+            key: client.public_key,
         };
         client.socket.write(JSON.stringify(encryptedData));
     }

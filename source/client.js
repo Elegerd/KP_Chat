@@ -11,10 +11,10 @@ class Client {
     constructor(name, port, address) {
         let p, q;
         do {
-            p = this.getPrimeNumber(128, 1024);
+            p = this.getPrimeNumber(512, 4096);
         } while (p % 4 !== 3);
         do {
-            q = this.getPrimeNumber(128, 1024);
+            q = this.getPrimeNumber(512, 4096);
         } while (q % 4 !== 3);
         if (p < q)
             [p, q] = [q, p];
@@ -70,7 +70,7 @@ class Client {
                     const friendName = document.getElementById("chat-friend-name");
                     friendKey.value = client.friend_key;
                     friendName.value = client.friend_name;
-                    friendName.disable = true;
+                    friendName.disabled = true;
                     let encryptedData = {
                         name: client.name,
                         event: "Step_2",
@@ -85,7 +85,7 @@ class Client {
                     const friendName = document.getElementById("chat-friend-name");
                     friendKey.value = client.friend_key;
                     friendName.value = client.friend_name;
-                    friendName.disable = true;
+                    friendName.disabled = true;
                     client.setR();
                     let C = modExponentiation(client.R[1], 2, client.friend_key);
                     let encryptedData = {
@@ -153,7 +153,7 @@ class Client {
         });
 
         client.socket.on('error', (err) => {
-            console.error(err);
+            console.error("Connection error!");
         });
     }
 
@@ -188,7 +188,7 @@ class Client {
                             y % key,
                             -y % key].find(m => (m >= 0) && (m <= 1280));
             if (result === undefined)
-                result = s;
+                result = Math.min(r, s);
             console.log("x: ", x % key, "y: ", y % key, "-x: ", -x % key, "-y: ", -y % key);
             let m = flag ? String.fromCharCode(result) : result;
             console.log("m: ", m);
@@ -213,22 +213,6 @@ class Client {
         };
         client.socket.write(JSON.stringify(data));
     }
-
-    // linkUser(data) {
-    //     let client = this;
-    //     client.setR();
-    //     client.friend_key = data.friend_key;
-    //     client.friend_name = data.friend_name;
-    //     let C = modExponentiation(client.R[1], 2, client.friend_key);
-    //     let encryptedData = {
-    //         name: client.name,
-    //         event: "Step_3",
-    //         encrypted_message: C,
-    //         friend_key: client.friend_key,
-    //         friend_name: client.friend_name,
-    //     };
-    //     client.socket.write(JSON.stringify(encryptedData));
-    // }
 
     linkUser(data) {
         let client = this;

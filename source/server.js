@@ -49,29 +49,29 @@ class Server {
           this.connectedSockets.broadcast(data);
         } else if (obj.event) {
           if (obj.event === "Step_1") {
-            console.log("\n[Crypto protocol start]");
-            console.log('\n', obj.event);
-            console.log(obj);
+            console.info("\n[Crypto protocol start]");
+            console.info('\n', obj.event);
+            console.info(obj);
             this.connectedSockets.sendSock(obj.friend_name, data);
           } else if (obj.event === "Step_2") {
-            console.log('\n',obj.event);
-            console.log(obj);
+            console.info('\n',obj.event);
+            console.info(obj);
             this.connectedSockets.sendSock(obj.friend_name, data);
           } else if (obj.event === "Step_3") {
-            console.log('\n',obj.event);
-            console.log(obj);
+            console.info('\n',obj.event);
+            console.info(obj);
             this.connectedSockets.sendSock(obj.friend_name, data);
           } else if (obj.event === "Step_4") {
-            console.log('\n',obj.event);
-            console.log(obj);
+            console.info('\n',obj.event);
+            console.info(obj);
             this.connectedSockets.sendSock(obj.friend_name, data)
           } else if (obj.event === "Step_5") {
-            console.log('\n',obj.event);
-            console.log(obj);
+            console.info('\n',obj.event);
+            console.info(obj);
             this.connectedSockets.sendSock(obj.friend_name, data)
           } else if (obj.event === "Step_6") {
-            console.log('\n',obj.event);
-            console.log(obj);
+            console.info('\n',obj.event);
+            console.info(obj);
             this.connectedSockets.sendSock(obj.friend_name, data)
           }
         } else {

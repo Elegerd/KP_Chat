@@ -54,7 +54,7 @@
     flex: 1;
 }
 
-#chat-public-key, #chat-session-key, #chat-friend-public-key, #chat-friend-name  {
+#chat-public-key, #chat-session-key, #chat-friend-public-key, .chat-friend-name  {
     width: 100%;
 }
 
@@ -67,6 +67,6 @@
 #chat-friend-public-key::-webkit-input-placeholder {
     color: rgba(77, 56, 75, 1);
 }
-#chat-friend-name::-webkit-input-placeholder {
+.chat-friend-name::-webkit-input-placeholder {
     color: rgba(77, 56, 75, 1);
 }

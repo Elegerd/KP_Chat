@@ -1,15 +1,7 @@
-const basicEuclidean = (a, b) => {
-    while (true) {
-        a = a % b;
-        if (a === 0)
-            return b;
-        b = b % a;
-        if (b === 0)
-            return a;
-    }
-};
+const basicEuclidean = require('./algorithm_euclidean_basic');
 
-const extendedEuclidean = (a, b) => {
+
+const extendedEuclidean = function(a, b) {
     let q, r, x1, x2, y1, y2, x, y, d;
     if (basicEuclidean(a, b) !== 1)
         return -1;

@@ -32,6 +32,7 @@ class Server {
       for (let sock of this) {
         if (sock.username && sock.username === name) {
           sock.write(data);
+          console.log(name, data)
         }
       }
     };
@@ -48,31 +49,14 @@ class Server {
           console.log(`${clientName} says: ${obj.message}`);
           this.connectedSockets.broadcast(data);
         } else if (obj.event) {
-          if (obj.event === "Step_1") {
-            console.info("\n[Crypto protocol start]");
-            console.info('\n', obj.event);
-            console.info(obj);
-            this.connectedSockets.sendSock(obj.friend_name, data);
-          } else if (obj.event === "Step_2") {
-            console.info('\n',obj.event);
-            console.info(obj);
-            this.connectedSockets.sendSock(obj.friend_name, data);
-          } else if (obj.event === "Step_3") {
-            console.info('\n',obj.event);
-            console.info(obj);
-            this.connectedSockets.sendSock(obj.friend_name, data);
-          } else if (obj.event === "Step_4") {
-            console.info('\n',obj.event);
-            console.info(obj);
-            this.connectedSockets.sendSock(obj.friend_name, data)
-          } else if (obj.event === "Step_5") {
-            console.info('\n',obj.event);
-            console.info(obj);
-            this.connectedSockets.sendSock(obj.friend_name, data)
-          } else if (obj.event === "Step_6") {
-            console.info('\n',obj.event);
-            console.info(obj);
-            this.connectedSockets.sendSock(obj.friend_name, data)
+          if((obj.event === "Step_-1" || obj.event === "Step_0") && obj.key) {
+            this.connectedSockets.sendSock(obj.friend, data)
+          } else if (obj.event === "Step_-1" || obj.event === "Step_0") {
+            this.connectedSockets.sendSock(obj.friend, data)
+          } else if (obj.event === "Start") {
+            this.connectedSockets.sendSock(obj.friend, data)
+          } else if (obj.event === "Step_1") {
+            this.connectedSockets.sendSock(obj.trent, data)
           }
         } else {
           let users = this.connectedSockets.getUsers();

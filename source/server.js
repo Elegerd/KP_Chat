@@ -32,7 +32,6 @@ class Server {
       for (let sock of this) {
         if (sock.username && sock.username === name) {
           sock.write(data);
-          console.log(name, data)
         }
       }
     };
@@ -57,6 +56,8 @@ class Server {
             this.connectedSockets.sendSock(obj.friend, data)
           } else if (obj.event === "Step_1") {
             this.connectedSockets.sendSock(obj.trent, data)
+          } else if (obj.event === "Step_2") {
+            this.connectedSockets.sendSock(obj.friend, data)
           }
         } else {
           let users = this.connectedSockets.getUsers();

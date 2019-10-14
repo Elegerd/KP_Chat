@@ -67,7 +67,7 @@ class Client {
                 if (obj.event === "Step_-1" && obj.key !== undefined) {
                     client.friendsKeys.push(obj.key);
                     let box = document.getElementById('chat-friend-name1');
-                    box.value = obj.key;
+                    box.value = "d: " + obj.key.d + "n: " + obj.key.n;
                     box.disabled = true;
                     let data = {
                         name: client.name,
@@ -78,7 +78,7 @@ class Client {
                 } else if (obj.event === "Step_0" && obj.key !== undefined) {
                     client.friendsKeys.push(obj.key);
                     let box = document.getElementById('chat-friend-name2');
-                    box.value = obj.key;
+                    box.value = "d: " + obj.key.d + ", n: " + obj.key.n;
                     box.disabled = true;
                     let data = {
                         name: client.name,
@@ -91,7 +91,11 @@ class Client {
                     let data = {
                         name: client.name,
                         friend: obj.name,
-                        key: client.d,
+                        key: {
+                            e: client.e,
+                            d: client.d,
+                            n: client.n,
+                        },
                         event: obj.event
                     };
                     client.socket.write(JSON.stringify(data));
@@ -106,14 +110,52 @@ class Client {
                         friend: client.friends[0],
                         event: "Step_1",
                     };
-                    console.log(data);
+                    console.log("My name: ", data.name, "Friend name: ", data.friend);
                     client.socket.write(JSON.stringify(data));
                 } else if (obj.event === "Step_1") {
-                    console.log("[STEP_2]\n", client.name, "sends", obj.name);
-                    console.log(obj);
+                    console.log("[STEP_2]\n", client.name, "received from", obj.name);
+                    console.log("Alice: ", obj.name, "Bob: ", obj.friend);
+                    const encoding = (T, L, K, NAME, key) => {
+                        return {
+                            T: modExponentiation(T, key.e, key.n),
+                            L: modExponentiation(L, key.e, key.n),
+                            K: modExponentiation(K, key.e, key.n),
+                            NAME: NAME.split('').map(char => modExponentiation(char.charCodeAt(0), key.e, key.n)),
+                        }
+                    };
+                    let T = parseInt(new Date().getTime()/1000);
+                    let L = 1000;
+                    let K = client.getPrimeNumber(1024, 4096);
+                    console.log("T: ", T, "L: ", L, "K: ", K);
+                    let Ekb = encoding(T, L, K, client.friends[0], client.friendsKeys[1]);
+                    let Eka = encoding(T, L, K, client.friends[1], client.friendsKeys[0]);
+                    console.log("Ekb = ", Ekb);
+                    console.log("Eka = ", Eka);
+                    let data = {
+                        name: client.name,
+                        friend: client.friends[0],
+                        Ekb: Ekb,
+                        Eka: Eka,
+                        event: "Step_2",
+                    };
+                    client.socket.write(JSON.stringify(data))
+                } else if (obj.event === "Step_2") {
+                    console.log("[STEP_3]\n", client.name, "received from", obj.name);
+                    console.log("Ekb = ", obj.Ekb, "Eka = ", obj.Eka);
+                    // Check
+                    const decoding = (e, key) => {
+                        return {
+                            T: modExponentiation(e.T, key.d, key.n),
+                            L: modExponentiation(e.L, key.d, key.n),
+                            K: modExponentiation(e.K, key.d, key.n),
+                            NAME: e.NAME.map(char => String.fromCharCode(modExponentiation(char, key.e, key.n))),
+                        }
+                    };
+                    let decode_Ekb = decoding(obj.Ekb, {d: client.d, n: client.n});
+                    let decode_Eka = decoding(obj.Eka, {d: client.d, n: client.n});
+                    console.log("decode_Ekb = ", decode_Ekb, "decode_Eka = ", decode_Eka);
                 }
             }
-            console.log(`Client received: ${data}`);
         });
 
         client.socket.on('close', () => {

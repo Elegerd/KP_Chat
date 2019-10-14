@@ -23,20 +23,10 @@ function startProtocol() {
     }
 }
 
-// function userLinking() {
-//     const friendName = document.getElementById("chat-friend-name");
-//     if (friendName.value !== "") {
-//         let data = {
-//             friend_name: friendName.value,
-//         };
-//         client.linkUser(data);
-//     }
-// }
-//
-// function send() {
-//     const message = document.getElementById("chat-input");
-//     if (message.value !== "") {
-//         client.sendMessage(message.value);
-//         message.value = ""
-//     }
-// }
+function send() {
+    const message = document.getElementById("chat-input");
+    if (message.value !== "" && client.session_key !== 0) {
+        client.sendMessage(message.value);
+        message.value = ""
+    }
+}

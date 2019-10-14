@@ -58,6 +58,10 @@ class Server {
             this.connectedSockets.sendSock(obj.trent, data)
           } else if (obj.event === "Step_2") {
             this.connectedSockets.sendSock(obj.friend, data)
+          } else if (obj.event === "Step_3") {
+            this.connectedSockets.sendSock(obj.friend, data)
+          } else if (obj.event === "Step_4") {
+            this.connectedSockets.sendSock(obj.friend, data)
           }
         } else {
           let users = this.connectedSockets.getUsers();

@@ -16,19 +16,20 @@ class Client {
         this.port = port;
         this.friends = [];
         this.friendsKeys = [];
-        this.p = this.getPrimeNumber(1024, 4096);
-        this.q = this.getPrimeNumber(1024, 4096);
+        this.p = this.getPrimeNumber(128, 1024);
+        this.q = this.getPrimeNumber(128, 1024);
         this.n = this.p * this.q;
         this.fi = (this.p - 1) * (this.q - 1);
         let e;
         do {
-            e = this.getPrimeNumber(1024, this.fi - 1);
+            e = this.getPrimeNumber(128, this.fi - 1);
         } while (basicEuclidean(e, this.fi) !== 1);
         this.e = e;
         let d = extendedEuclidean(this.e, this.fi)[0];
         d = d < 0 ? d + this.fi : d;
         this.d = d;
         console.log("p:",this.p, "q:", this.q, "n:", this.n, "fi:", this.fi, "e:", this.e, "d:", this.d);
+        this.session_key = 0;
         this.init();
     }
 
@@ -38,7 +39,7 @@ class Client {
             let data = {
                 "name" : this.name,
             };
-            document.getElementById('chat-public-key').value = this.public_key;
+            document.getElementById('chat-name').value = client.name;
             client.socket.write(JSON.stringify(data));
             console.log(`Client connected to: [${client.name}] ${client.address} :  ${client.port}`);
         });
@@ -48,12 +49,14 @@ class Client {
             if (obj.message) {
                 let box = document.getElementById('chat-box');
                 let span = document.createElement('div');
-                let message = obj.message;
-
-
-
-                span.innerHTML = obj.name + " says: " + message + " ";
-                box.appendChild(span);
+                let message = "";
+                obj.message.forEach(c => {
+                   message += String.fromCharCode(c ^ client.session_key);
+                });
+                if (client.session_key !== 0) {
+                    span.innerHTML = obj.name + " says: " + message + " ";
+                    box.appendChild(span);
+                }
             } else if (obj.users) {
                 let box = document.getElementById('chat-box');
                 let span = document.createElement('div');
@@ -67,7 +70,7 @@ class Client {
                 if (obj.event === "Step_-1" && obj.key !== undefined) {
                     client.friendsKeys.push(obj.key);
                     let box = document.getElementById('chat-friend-name1');
-                    box.value = "d: " + obj.key.d + "n: " + obj.key.n;
+                    box.value = "d: " + obj.key.d + ", n: " + obj.key.n;
                     box.disabled = true;
                     let data = {
                         name: client.name,
@@ -103,6 +106,10 @@ class Client {
                     client.friends = [];
                     client.friends.push(obj.friend2);
                     console.log("...PROTOCOL START...");
+                    let box = document.getElementById('chat-friend-name1');
+                    document.getElementById('chat-friend-name2').disabled = true;
+                    box.value = client.friends[0];
+                    box.disabled = true;
                     console.log("[STEP_1]\n", client.name, "sends", obj.name);
                     let data = {
                         name: client.name,
@@ -123,16 +130,15 @@ class Client {
                             NAME: NAME.split('').map(char => modExponentiation(char.charCodeAt(0), key.e, key.n)),
                         }
                     };
-                    let T = parseInt(new Date().getTime()/1000);
-                    let L = 1000;
-                    let K = client.getPrimeNumber(1024, 4096);
+                    let T = parseInt(new Date().getTime() / 1000) - parseInt(new Date(2019, 9, 15).getTime() / 1000);
+                    let L = 5;
+                    let K = getRandomInRange(64, 65535);
                     console.log("T: ", T, "L: ", L, "K: ", K);
                     let Ekb = encoding(T, L, K, client.friends[0], client.friendsKeys[1]);
                     let Eka = encoding(T, L, K, client.friends[1], client.friendsKeys[0]);
                     console.log("Ekb = ", Ekb);
                     console.log("Eka = ", Eka);
                     let data = {
-                        name: client.name,
                         friend: client.friends[0],
                         Ekb: Ekb,
                         Eka: Eka,
@@ -140,20 +146,89 @@ class Client {
                     };
                     client.socket.write(JSON.stringify(data))
                 } else if (obj.event === "Step_2") {
-                    console.log("[STEP_3]\n", client.name, "received from", obj.name);
+                    console.log("[STEP_3]\n", client.name, "received");
                     console.log("Ekb = ", obj.Ekb, "Eka = ", obj.Eka);
-                    // Check
                     const decoding = (e, key) => {
                         return {
                             T: modExponentiation(e.T, key.d, key.n),
                             L: modExponentiation(e.L, key.d, key.n),
                             K: modExponentiation(e.K, key.d, key.n),
-                            NAME: e.NAME.map(char => String.fromCharCode(modExponentiation(char, key.e, key.n))),
+                            NAME: e.NAME.map(char => String.fromCharCode(modExponentiation(char, key.d, key.n))).join(''),
+                        }
+                    };
+                    let decode_Eka = decoding(obj.Eka, {d: client.d, n: client.n});
+                    document.getElementById('chat-session-key').value = decode_Eka.K;
+                    console.log("decode_Eka = ", decode_Eka);
+                    let T = parseInt(new Date().getTime() / 1000) - parseInt(new Date(2019, 9, 15).getTime() / 1000);
+                    if (T - decode_Eka.T <= decode_Eka.L) {
+                        client.session_key = decode_Eka.K;
+                        let Ek = {
+                            NAME: client.name.split('').map(char => char.charCodeAt(0) ^ client.session_key),
+                            T: T ^ client.session_key,
+                        };
+                        let data = {
+                            friend: client.friends[0],
+                            Ekb: obj.Ekb,
+                            Ek: Ek,
+                            event: "Step_3",
+                        };
+                        client.socket.write(JSON.stringify(data))
+                    } else {
+                        console.error("Error, message expired");
+                    }
+                } else if (obj.event === "Step_3") {
+                    console.log("[STEP_4]\n", client.name, "received");
+                    console.log("Ekb = ", obj.Ekb, "Ek = ", obj.Ek);
+                    const decoding = (e, key) => {
+                        return {
+                            T: modExponentiation(e.T, key.d, key.n),
+                            L: modExponentiation(e.L, key.d, key.n),
+                            K: modExponentiation(e.K, key.d, key.n),
+                            NAME: e.NAME.map(char => String.fromCharCode(modExponentiation(char, key.d, key.n))).join(''),
                         }
                     };
                     let decode_Ekb = decoding(obj.Ekb, {d: client.d, n: client.n});
-                    let decode_Eka = decoding(obj.Eka, {d: client.d, n: client.n});
-                    console.log("decode_Ekb = ", decode_Ekb, "decode_Eka = ", decode_Eka);
+                    client.friends.push(decode_Ekb.NAME);
+                    client.session_key = decode_Ekb.K;
+                    document.getElementById('chat-session-key').value = client.session_key;
+                    let box = document.getElementById('chat-friend-name2');
+                    document.getElementById('chat-friend-name1').disabled = true;
+                    box.value = client.friends[0];
+                    box.disabled = true;
+                    let decode_Ek = {
+                        NAME: obj.Ek.NAME.map(char => String.fromCharCode(char ^ client.session_key)).join(''),
+                        T: obj.Ek.T ^ client.session_key
+                    };
+                    console.log("decode_Ekb = ", decode_Ekb);
+                    console.log("decode_Ek = ", decode_Ek);
+                    let T = parseInt(new Date().getTime() / 1000) - parseInt(new Date(2019, 9, 15).getTime() / 1000);
+                    if (T - decode_Ek.T <= decode_Ekb.L) {
+                        let Ek = {
+                            T: (T + 1) ^ client.session_key,
+                        };
+                        let data = {
+                            friend: client.friends[0],
+                            Ek: Ek,
+                            event: "Step_4",
+                        };
+                        console.log(data);
+                        client.socket.write(JSON.stringify(data))
+                    } else {
+                        console.error("Error, message expired");
+                    }
+                } else if (obj.event === "Step_4") {
+                    console.log("[STEP_5]\n", client.name, "received");
+                    console.log("Ek = ", obj.Ek);
+                    let decode_Ek = {
+                        T: obj.Ek.T ^ client.session_key
+                    };
+                    console.log("decode_Ek = ", decode_Ek);
+                    let T = parseInt(new Date().getTime() / 1000) - parseInt(new Date(2019, 9, 15).getTime() / 1000);
+                    if (T - decode_Ek.T <= 5) {
+                        console.log("...PROTOCOL END...");
+                    } else {
+                        console.error("Error, message expired");
+                    }
                 }
             }
         });
@@ -208,22 +283,18 @@ class Client {
     //     return message;
     // }
     //
-    // sendMessage(message) {
-    //     let arrayM = message.split('').map(x => x.charCodeAt(0));
-    //     let arrayC = [];
-    //     if (this.session_key !== 0)
-    //         arrayC = arrayM.map(m => modExponentiation(m, 2, this.session_key));
-    //     else
-    //         arrayC = arrayM.map(m => modExponentiation(m, 2, this.public_key));
-    //     console.log("m: ", arrayM);
-    //     console.log("c: ", arrayC);
-    //     let client = this;
-    //     let data = {
-    //         name: this.name,
-    //         message: arrayC,
-    //     };
-    //     client.socket.write(JSON.stringify(data));
-    // }
+    sendMessage(message) {
+        let arrayM = message.split('').map(x => x.charCodeAt(0));
+        let arrayC = arrayM.map(m => m ^ this.session_key);
+        console.log("m: ", arrayM);
+        console.log("c: ", arrayC);
+        let client = this;
+        let data = {
+            name: this.name,
+            message: arrayC,
+        };
+        client.socket.write(JSON.stringify(data));
+    }
     //
     // linkUser(data) {
     //     let client = this;

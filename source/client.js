@@ -64,6 +64,8 @@ class Client {
                 box.appendChild(span);
             } else if (obj.event) {
                 if (obj.event === "Step_1") {
+                    console.log(obj.event);
+                    console.log(client.name, "received key", obj.key);
                     client.friend_name = obj.name;
                     client.friend_key = obj.key;
                     const friendKey = document.getElementById("chat-friend-public-key");
@@ -79,6 +81,8 @@ class Client {
                     };
                     client.socket.write(JSON.stringify(encryptedData));
                 } else if (obj.event === "Step_2") {
+                    console.log(obj.event);
+                    console.log(client.name, "received key", obj.key);
                     client.friend_name = obj.name;
                     client.friend_key = obj.key;
                     const friendKey = document.getElementById("chat-friend-public-key");
@@ -87,6 +91,7 @@ class Client {
                     friendName.value = client.friend_name;
                     friendName.disable = true;
                     client.setR();
+                    console.log("R: ", client.R[0]);
                     let C = modExponentiation(client.R[1], 2, client.friend_key);
                     let encryptedData = {
                         name: client.name,
@@ -97,9 +102,13 @@ class Client {
                     };
                     client.socket.write(JSON.stringify(encryptedData));
                 } else if (obj.event === "Step_3") {
+                    console.log(obj.event);
                     client.setR();
+                    console.log("R: ", client.R[0]);
                     client.encrypted_message = obj.encrypted_message;
+                    console.log("encrypted_message", client.encrypted_message);
                     let C = modExponentiation(client.R[1], 2, client.friend_key);
+                    console.log("C", C);
                     let encryptedData = {
                         name: client.name,
                         event: "Step_4",
@@ -109,8 +118,11 @@ class Client {
                     };
                     client.socket.write(JSON.stringify(encryptedData));
                 } else if (obj.event === "Step_4") {
+                    console.log(obj.event);
                     client.encrypted_message = obj.encrypted_message;
+                    console.log("encrypted_message", client.encrypted_message);
                     let C = modExponentiation(client.R[2], 2, client.friend_key);
+                    console.log("C", C);
                     let encryptedData = {
                         name: client.name,
                         event: "Step_5",
@@ -144,7 +156,6 @@ class Client {
                     console.log("Session key:", client.session_key);
                 }
             }
-            console.log(`Client received: ${data}`);
         });
 
         client.socket.on('close', () => {

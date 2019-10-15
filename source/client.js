@@ -16,19 +16,8 @@ class Client {
         this.port = port;
         this.friends = [];
         this.friendsKeys = [];
-        this.p = this.getPrimeNumber(128, 1024);
-        this.q = this.getPrimeNumber(128, 1024);
-        this.n = this.p * this.q;
-        this.fi = (this.p - 1) * (this.q - 1);
-        let e;
-        do {
-            e = this.getPrimeNumber(128, this.fi - 1);
-        } while (basicEuclidean(e, this.fi) !== 1);
-        this.e = e;
-        let d = extendedEuclidean(this.e, this.fi)[0];
-        d = d < 0 ? d + this.fi : d;
-        this.d = d;
-        console.log("p:",this.p, "q:", this.q, "n:", this.n, "fi:", this.fi, "e:", this.e, "d:", this.d);
+        this.key = getRandomInRange(64, 65535);
+        console.log("key: ", this.key);
         this.session_key = 0;
         this.init();
     }
@@ -70,7 +59,7 @@ class Client {
                 if (obj.event === "Step_-1" && obj.key !== undefined) {
                     client.friendsKeys.push(obj.key);
                     let box = document.getElementById('chat-friend-name1');
-                    box.value = "d: " + obj.key.d + ", n: " + obj.key.n;
+                    box.value = obj.key;
                     box.disabled = true;
                     let data = {
                         name: client.name,
@@ -81,7 +70,7 @@ class Client {
                 } else if (obj.event === "Step_0" && obj.key !== undefined) {
                     client.friendsKeys.push(obj.key);
                     let box = document.getElementById('chat-friend-name2');
-                    box.value = "d: " + obj.key.d + ", n: " + obj.key.n;
+                    box.value = obj.key;
                     box.disabled = true;
                     let data = {
                         name: client.name,
@@ -94,11 +83,7 @@ class Client {
                     let data = {
                         name: client.name,
                         friend: obj.name,
-                        key: {
-                            e: client.e,
-                            d: client.d,
-                            n: client.n,
-                        },
+                        key: client.key,
                         event: obj.event
                     };
                     client.socket.write(JSON.stringify(data));
@@ -124,10 +109,10 @@ class Client {
                     console.log("Alice: ", obj.name, "Bob: ", obj.friend);
                     const encoding = (T, L, K, NAME, key) => {
                         return {
-                            T: modExponentiation(T, key.e, key.n),
-                            L: modExponentiation(L, key.e, key.n),
-                            K: modExponentiation(K, key.e, key.n),
-                            NAME: NAME.split('').map(char => modExponentiation(char.charCodeAt(0), key.e, key.n)),
+                            T: T ^ key,
+                            L: L ^ key,
+                            K: K ^ key,
+                            NAME: NAME.split('').map(char => char.charCodeAt(0) ^ key),
                         }
                     };
                     let T = parseInt(new Date().getTime() / 1000) - parseInt(new Date(2019, 9, 15).getTime() / 1000);
@@ -150,13 +135,13 @@ class Client {
                     console.log("Ekb = ", obj.Ekb, "Eka = ", obj.Eka);
                     const decoding = (e, key) => {
                         return {
-                            T: modExponentiation(e.T, key.d, key.n),
-                            L: modExponentiation(e.L, key.d, key.n),
-                            K: modExponentiation(e.K, key.d, key.n),
-                            NAME: e.NAME.map(char => String.fromCharCode(modExponentiation(char, key.d, key.n))).join(''),
+                            T: e.T ^ key,
+                            L: e.L ^ key,
+                            K: e.K ^ key,
+                            NAME: e.NAME.map(char => String.fromCharCode(char ^ key)).join(''),
                         }
                     };
-                    let decode_Eka = decoding(obj.Eka, {d: client.d, n: client.n});
+                    let decode_Eka = decoding(obj.Eka, client.key);
                     document.getElementById('chat-session-key').value = decode_Eka.K;
                     console.log("decode_Eka = ", decode_Eka);
                     let T = parseInt(new Date().getTime() / 1000) - parseInt(new Date(2019, 9, 15).getTime() / 1000);
@@ -181,13 +166,13 @@ class Client {
                     console.log("Ekb = ", obj.Ekb, "Ek = ", obj.Ek);
                     const decoding = (e, key) => {
                         return {
-                            T: modExponentiation(e.T, key.d, key.n),
-                            L: modExponentiation(e.L, key.d, key.n),
-                            K: modExponentiation(e.K, key.d, key.n),
-                            NAME: e.NAME.map(char => String.fromCharCode(modExponentiation(char, key.d, key.n))).join(''),
+                            T: e.T ^ key,
+                            L: e.L ^ key,
+                            K: e.K ^ key,
+                            NAME: e.NAME.map(char => String.fromCharCode(char ^ key)).join(''),
                         }
                     };
-                    let decode_Ekb = decoding(obj.Ekb, {d: client.d, n: client.n});
+                    let decode_Ekb = decoding(obj.Ekb, client.key);
                     client.friends.push(decode_Ekb.NAME);
                     client.session_key = decode_Ekb.K;
                     document.getElementById('chat-session-key').value = client.session_key;
@@ -242,46 +227,6 @@ class Client {
         });
     }
 
-    // messageDecoding(arrayChar, key, flag) {
-    //     let [a, b] = euclidean.extendedEuclidean(this.key_p, this.key_q);
-    //     console.log("Encoded message: ", arrayChar);
-    //     console.log("p: ", this.key_p, "q: ", this.key_q);
-    //     console.log("a: ", a, "b: ", b);
-    //     let message = "";
-    //     arrayChar.forEach(c => {
-    //         console.log("\nc: ", c);
-    //         let r = modExponentiation(c, ((this.key_p + 1) / 4), this.key_p);
-    //         let s = modExponentiation(c, ((this.key_q + 1) / 4), this.key_q);
-    //         console.log("r: ", r, "s: ", s);
-    //         let t1 = (a * this.key_p * s) % key;
-    //         let t2 = (b * this.key_q * r) % key;
-    //         console.log("t1: ", t1, "t2: ", t2);
-    //         let x = (t1 + t2) % key;
-    //         let y = (t1 - t2) % key;
-    //         if (Math.abs(Math.abs(x) - key) < Math.abs(x))
-    //             if (x > 0)
-    //                 x -= key;
-    //             else
-    //                 x += key;
-    //         if (Math.abs(Math.abs(y) - key) < Math.abs(y))
-    //             if (y > 0)
-    //                 y -= key;
-    //             else
-    //                 y += key;
-    //         let result = [  x % key,
-    //                         -x % key,
-    //                         y % key,
-    //                         -y % key].find(m => (m >= 0) && (m <= 1280));
-    //         if (result === undefined)
-    //             result = Math.min(r, s);
-    //         console.log("x: ", x % key, "y: ", y % key, "-x: ", -x % key, "-y: ", -y % key);
-    //         let m = flag ? String.fromCharCode(result) : result;
-    //         console.log("m: ", m);
-    //         message += m;
-    //     });
-    //     return message;
-    // }
-    //
     sendMessage(message) {
         let arrayM = message.split('').map(x => x.charCodeAt(0));
         let arrayC = arrayM.map(m => m ^ this.session_key);
@@ -294,17 +239,6 @@ class Client {
         };
         client.socket.write(JSON.stringify(data));
     }
-    //
-    // linkUser(data) {
-    //     let client = this;
-    //     let encryptedData = {
-    //         name: client.name,
-    //         event: "Step_1",
-    //         friend_name: data.friend_name,
-    //         key: client.public_key,
-    //     };
-    //     client.socket.write(JSON.stringify(encryptedData));
-    // }
 
     startProtocol(data) {
         let client = this;

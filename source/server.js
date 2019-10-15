@@ -43,7 +43,8 @@ class Server {
 
       sock.on('data', (data) => {
         let obj = JSON.parse(data);
-        sock.username = obj.name;
+        if (sock.username === undefined)
+          sock.username = obj.name;
         if (obj.message) {
           console.log(`${clientName} says: ${obj.message}`);
           this.connectedSockets.broadcast(data);

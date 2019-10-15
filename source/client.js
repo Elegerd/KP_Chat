@@ -211,7 +211,6 @@ class Client {
                             Ek: Ek,
                             event: "Step_4",
                         };
-                        console.log(data);
                         client.socket.write(JSON.stringify(data))
                     } else {
                         console.error("Error, message expired");

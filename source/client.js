@@ -1,11 +1,7 @@
 const net = require('net');
 const getRandomInRange = require('./algorithm/random_number');
-const basicEuclidean = require('./algorithm/algorithm_euclidean_basic');
-const extendedEuclidean = require('./algorithm/algorithm_euclidean_extendend');
-const modExponentiation = require('./algorithm/exponent_mod');
-const testMillerRabin = require('./algorithm/test_miller_rabin');
-
 const Server = require('./server');
+
 let server = null;
 
 class Client {
@@ -108,14 +104,12 @@ class Client {
                     console.log("[STEP_2]\n", client.name, "received from", obj.name);
                     console.log("Alice: ", obj.name, "Bob: ", obj.friend);
                     const encoding = (T, L, K, NAME, key) => {
-                        return {
-                            T: T ^ key,
-                            L: L ^ key,
-                            K: K ^ key,
-                            NAME: NAME.split('').map(char => char.charCodeAt(0) ^ key),
-                        }
+                        let obj = {
+                            T: T, L: L, K: K, NAME: NAME,
+                        };
+                        return JSON.stringify(obj).split('').map(char => char.charCodeAt(0) ^ key);
                     };
-                    let T = parseInt(new Date().getTime() / 1000) - parseInt(new Date(2019, 9, 15).getTime() / 1000);
+                    let T = parseInt(new Date().getTime() / 1000) - parseInt(new Date(2019, 9, 20).getTime() / 1000);
                     let L = 5;
                     let K = getRandomInRange(64, 65535);
                     console.log("T: ", T, "L: ", L, "K: ", K);
@@ -133,24 +127,19 @@ class Client {
                 } else if (obj.event === "Step_2") {
                     console.log("[STEP_3]\n", client.name, "received");
                     console.log("Ekb = ", obj.Ekb, "Eka = ", obj.Eka);
-                    const decoding = (e, key) => {
-                        return {
-                            T: e.T ^ key,
-                            L: e.L ^ key,
-                            K: e.K ^ key,
-                            NAME: e.NAME.map(char => String.fromCharCode(char ^ key)).join(''),
-                        }
+                    const encoding = (T, NAME, key) => {
+                        let obj = {
+                            T: T, NAME: NAME,
+                        };
+                        return JSON.stringify(obj).split('').map(char => char.charCodeAt(0) ^ key);
                     };
-                    let decode_Eka = decoding(obj.Eka, client.key);
+                    let decode_Eka = client.decoding(obj.Eka, client.key);
                     document.getElementById('chat-session-key').value = decode_Eka.K;
                     console.log("decode_Eka = ", decode_Eka);
-                    let T = parseInt(new Date().getTime() / 1000) - parseInt(new Date(2019, 9, 15).getTime() / 1000);
+                    let T = parseInt(new Date().getTime() / 1000) - parseInt(new Date(2019, 9, 20).getTime() / 1000);
                     if (T - decode_Eka.T <= decode_Eka.L) {
                         client.session_key = decode_Eka.K;
-                        let Ek = {
-                            NAME: client.name.split('').map(char => char.charCodeAt(0) ^ client.session_key),
-                            T: T ^ client.session_key,
-                        };
+                        let Ek = encoding(T, client.name, client.session_key);
                         let data = {
                             friend: client.friends[0],
                             Ekb: obj.Ekb,
@@ -164,15 +153,13 @@ class Client {
                 } else if (obj.event === "Step_3") {
                     console.log("[STEP_4]\n", client.name, "received");
                     console.log("Ekb = ", obj.Ekb, "Ek = ", obj.Ek);
-                    const decoding = (e, key) => {
-                        return {
-                            T: e.T ^ key,
-                            L: e.L ^ key,
-                            K: e.K ^ key,
-                            NAME: e.NAME.map(char => String.fromCharCode(char ^ key)).join(''),
-                        }
+                    const encoding = (T, key) => {
+                        let obj = {
+                            T: T,
+                        };
+                        return JSON.stringify(obj).split('').map(char => char.charCodeAt(0) ^ key);
                     };
-                    let decode_Ekb = decoding(obj.Ekb, client.key);
+                    let decode_Ekb = client.decoding(obj.Ekb, client.key);
                     client.friends.push(decode_Ekb.NAME);
                     client.session_key = decode_Ekb.K;
                     document.getElementById('chat-session-key').value = client.session_key;
@@ -180,17 +167,12 @@ class Client {
                     document.getElementById('chat-friend-name1').disabled = true;
                     box.value = client.friends[0];
                     box.disabled = true;
-                    let decode_Ek = {
-                        NAME: obj.Ek.NAME.map(char => String.fromCharCode(char ^ client.session_key)).join(''),
-                        T: obj.Ek.T ^ client.session_key
-                    };
+                    let decode_Ek = client.decoding(obj.Ek, client.session_key);
                     console.log("decode_Ekb = ", decode_Ekb);
                     console.log("decode_Ek = ", decode_Ek);
-                    let T = parseInt(new Date().getTime() / 1000) - parseInt(new Date(2019, 9, 15).getTime() / 1000);
+                    let T = parseInt(new Date().getTime() / 1000) - parseInt(new Date(2019, 9, 20).getTime() / 1000);
                     if (T - decode_Ek.T <= decode_Ekb.L) {
-                        let Ek = {
-                            T: (T + 1) ^ client.session_key,
-                        };
+                        let Ek = encoding((T + 1), client.session_key);
                         let data = {
                             friend: client.friends[0],
                             Ek: Ek,
@@ -203,11 +185,9 @@ class Client {
                 } else if (obj.event === "Step_4") {
                     console.log("[STEP_5]\n", client.name, "received");
                     console.log("Ek = ", obj.Ek);
-                    let decode_Ek = {
-                        T: obj.Ek.T ^ client.session_key
-                    };
+                    let decode_Ek = client.decoding(obj.Ek, client.session_key);
                     console.log("decode_Ek = ", decode_Ek);
-                    let T = parseInt(new Date().getTime() / 1000) - parseInt(new Date(2019, 9, 15).getTime() / 1000);
+                    let T = parseInt(new Date().getTime() / 1000) - parseInt(new Date(2019, 9, 20).getTime() / 1000);
                     if (T - decode_Ek.T <= 5) {
                         console.log("...PROTOCOL END...");
                     } else {
@@ -226,6 +206,11 @@ class Client {
             console.error("Connection error!");
         });
     }
+
+    decoding(e, key) {
+        let obj = e.map(char => String.fromCharCode(char ^ key)).join('');
+        return JSON.parse(obj);
+    };
 
     sendMessage(message) {
         let arrayM = message.split('').map(x => x.charCodeAt(0));
@@ -252,15 +237,6 @@ class Client {
             event: "Step_-1",
         };
         client.socket.write(JSON.stringify(dataFriend))
-    }
-
-    getPrimeNumber(left, right) {
-        let prime, isPrimeNumber;
-        do {
-            prime = getRandomInRange(left, right);
-            isPrimeNumber = testMillerRabin(prime, 10);
-        } while (!isPrimeNumber);
-        return prime;
     }
 }
 module.exports = Client;

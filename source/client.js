@@ -91,12 +91,11 @@ class Client {
                     friendName.value = client.friend_name;
                     friendName.disable = true;
                     client.setR();
-                    console.log("R: ", client.R[0]);
-                    let C = modExponentiation(client.R[1], 2, client.friend_key);
+                    console.log("R1: ", client.R[2][0]);
                     let encryptedData = {
                         name: client.name,
                         event: "Step_3",
-                        encrypted_message: C,
+                        encrypted_message: client.R[2][0],
                         friend_key: client.friend_key,
                         friend_name: client.friend_name,
                     };
@@ -104,15 +103,13 @@ class Client {
                 } else if (obj.event === "Step_3") {
                     console.log(obj.event);
                     client.setR();
-                    console.log("R: ", client.R[0]);
+                    console.log("R1: ", client.R[2][0]);
                     client.encrypted_message = obj.encrypted_message;
                     console.log("encrypted_message", client.encrypted_message);
-                    let C = modExponentiation(client.R[1], 2, client.friend_key);
-                    console.log("C", C);
                     let encryptedData = {
                         name: client.name,
                         event: "Step_4",
-                        encrypted_message: C,
+                        encrypted_message: client.R[2][0],
                         friend_key: client.friend_key,
                         friend_name: client.friend_name,
                     };
@@ -121,35 +118,34 @@ class Client {
                     console.log(obj.event);
                     client.encrypted_message = obj.encrypted_message;
                     console.log("encrypted_message", client.encrypted_message);
-                    let C = modExponentiation(client.R[2], 2, client.friend_key);
-                    console.log("C", C);
+                    console.log("R2: ", client.R[2][1]);
                     let encryptedData = {
                         name: client.name,
                         event: "Step_5",
-                        encrypted_message: C,
+                        encrypted_message: client.R[2][1],
                         friend_key: client.friend_key,
                         friend_name: client.friend_name,
                     };
                     client.socket.write(JSON.stringify(encryptedData));
                 } else if (obj.event === "Step_5") {
-                    client.encrypted_message = client.messageDecoding([client.encrypted_message], client.public_key, false)
-                        * client.messageDecoding([obj.encrypted_message], client.public_key, false);
+                    client.encrypted_message = parseInt(client.encrypted_message + obj.encrypted_message, 2);
+                    client.encrypted_message = client.messageDecoding([client.encrypted_message], client.public_key, false);
                     client.session_key = client.encrypted_message ^ client.R[0];
                     document.getElementById("chat-session-key").value = client.session_key;
+                    console.log("R2: ", client.R[2][1]);
                     console.log("Decoding result:", client.encrypted_message);
                     console.log("Session key:", client.session_key);
-                    let C = modExponentiation(client.R[2], 2, client.friend_key);
                     let encryptedData = {
                         name: client.name,
                         event: "Step_6",
-                        encrypted_message: C,
+                        encrypted_message: client.R[2][1],
                         friend_key: client.friend_key,
                         friend_name: client.friend_name,
                     };
                     client.socket.write(JSON.stringify(encryptedData));
                 } else if (obj.event === "Step_6") {
-                    client.encrypted_message = client.messageDecoding([client.encrypted_message], client.public_key, false)
-                        * client.messageDecoding([obj.encrypted_message], client.public_key, false);
+                    client.encrypted_message = parseInt(client.encrypted_message + obj.encrypted_message, 2);
+                    client.encrypted_message = client.messageDecoding([client.encrypted_message], client.public_key, false);
                     client.session_key = client.R[0] ^ client.encrypted_message;
                     document.getElementById("chat-session-key").value = client.session_key;
                     console.log("Decoding result:", client.encrypted_message);
@@ -164,7 +160,7 @@ class Client {
         });
 
         client.socket.on('error', (err) => {
-            console.error(err);
+            console.error("Connection error!");
         });
     }
 
@@ -225,22 +221,6 @@ class Client {
         client.socket.write(JSON.stringify(data));
     }
 
-    // linkUser(data) {
-    //     let client = this;
-    //     client.setR();
-    //     client.friend_key = data.friend_key;
-    //     client.friend_name = data.friend_name;
-    //     let C = modExponentiation(client.R[1], 2, client.friend_key);
-    //     let encryptedData = {
-    //         name: client.name,
-    //         event: "Step_3",
-    //         encrypted_message: C,
-    //         friend_key: client.friend_key,
-    //         friend_name: client.friend_name,
-    //     };
-    //     client.socket.write(JSON.stringify(encryptedData));
-    // }
-
     linkUser(data) {
         let client = this;
         let encryptedData = {
@@ -254,10 +234,10 @@ class Client {
 
     setR() {
         let client = this;
-        client.R[1] = this.getPrimeNumber(128, 1024);
-        client.R[2] = this.getPrimeNumber(128, 1024);
-        client.R[0] = client.R[1] * client.R[2];
-        console.log("R = ", client.R[0]);
+        client.R[0] = getRandomInRange(128, 1024);
+        client.R[1] = (modExponentiation(client.R[0], 2, client.friend_key)).toString(2);
+        client.R[2] = [client.R[1].substring(0, client.R[1].length/2|0), client.R[1].substring(client.R[1].length/2|0)];
+        console.log("R =", client.R[0], "R[1] =", client.R[1], "R[2] =", client.R[2]);
     }
 
     getPrimeNumber(left, right) {

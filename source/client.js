@@ -13,7 +13,7 @@ class Client {
         this.friends = [];
         this.friendsKeys = [];
         this.key = getRandomInRange(64, 65535);
-        console.log("key: ", this.key);
+        console.log("Key: ", this.key);
         this.session_key = 0;
         this.init();
     }
@@ -109,8 +109,8 @@ class Client {
                         };
                         return JSON.stringify(obj).split('').map(char => char.charCodeAt(0) ^ key);
                     };
-                    let T = parseInt(new Date().getTime() / 1000) - parseInt(new Date(2019, 9, 20).getTime() / 1000);
-                    let L = 5;
+                    let T = client.getTimeStamp();
+                    let L = 2000;
                     let K = getRandomInRange(64, 65535);
                     console.log("T: ", T, "L: ", L, "K: ", K);
                     let Ekb = encoding(T, L, K, client.friends[0], client.friendsKeys[1]);
@@ -136,7 +136,7 @@ class Client {
                     let decode_Eka = client.decoding(obj.Eka, client.key);
                     document.getElementById('chat-session-key').value = decode_Eka.K;
                     console.log("decode_Eka = ", decode_Eka);
-                    let T = parseInt(new Date().getTime() / 1000) - parseInt(new Date(2019, 9, 20).getTime() / 1000);
+                    let T = client.getTimeStamp();
                     if (T - decode_Eka.T <= decode_Eka.L) {
                         client.session_key = decode_Eka.K;
                         let Ek = encoding(T, client.name, client.session_key);
@@ -170,9 +170,9 @@ class Client {
                     let decode_Ek = client.decoding(obj.Ek, client.session_key);
                     console.log("decode_Ekb = ", decode_Ekb);
                     console.log("decode_Ek = ", decode_Ek);
-                    let T = parseInt(new Date().getTime() / 1000) - parseInt(new Date(2019, 9, 20).getTime() / 1000);
+                    let T = client.getTimeStamp();
                     if (T - decode_Ek.T <= decode_Ekb.L) {
-                        let Ek = encoding((T + 1), client.session_key);
+                        let Ek = encoding((T + (1 * 1000)), client.session_key);
                         let data = {
                             friend: client.friends[0],
                             Ek: Ek,
@@ -187,8 +187,8 @@ class Client {
                     console.log("Ek = ", obj.Ek);
                     let decode_Ek = client.decoding(obj.Ek, client.session_key);
                     console.log("decode_Ek = ", decode_Ek);
-                    let T = parseInt(new Date().getTime() / 1000) - parseInt(new Date(2019, 9, 20).getTime() / 1000);
-                    if (T - decode_Ek.T <= 5) {
+                    let T = client.getTimeStamp();
+                    if (T - decode_Ek.T <= 2000) {
                         console.log("...PROTOCOL END...");
                     } else {
                         console.error("Error, message expired");
@@ -205,6 +205,13 @@ class Client {
         client.socket.on('error', (err) => {
             console.error("Connection error!");
         });
+    }
+
+    getTimeStamp() {
+        let date = new Date();
+        date.setDate(date.getDate() - 1);
+        date.setHours(12, 0, 0);
+        return parseInt(new Date().getTime()) - parseInt(date.getTime());
     }
 
     decoding(e, key) {

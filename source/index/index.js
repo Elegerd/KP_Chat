@@ -12,8 +12,8 @@ function connectServer() {
 }
 
 function startProtocol() {
-    const friendName1 = document.getElementById("chat-friend-name1");
-    const friendName2 = document.getElementById("chat-friend-name2");
+    const friendName1 = document.getElementById("chat-friend1");
+    const friendName2 = document.getElementById("chat-friend2");
     if (friendName1.value !== "" && friendName2.value !== "") {
         let data = {
             friend_name1: friendName1.value,

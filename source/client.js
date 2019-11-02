@@ -1,4 +1,5 @@
 const net = require('net');
+const md5 = require('md5');
 const modExponentiation = require('./algorithm/exponent_mod');
 const getRandomInRange = require('./algorithm/random_number');
 const basicEuclidean = require('./algorithm/algorithm_euclidean_basic');
@@ -17,10 +18,10 @@ class Client {
 
         let p, q;
         do {
-            p = this.getPrimeNumber(128, 1024);
+            p = this.getPrimeNumber(32, 128);
         } while (p % 4 !== 3);
         do {
-            q = this.getPrimeNumber(128, 1024);
+            q = this.getPrimeNumber(32, 128);
         } while (q % 4 !== 3);
         if (p < q)
             [p, q] = [q, p];
@@ -154,6 +155,7 @@ class Client {
                     let m = obj.S.map(char => String.fromCharCode(
                         modExponentiation(char, client.friendsKeys[0].e, client.friendsKeys[0].n))).join('');
                     let flag = m === obj.M;
+                    console.log(m, obj.M);
                     console.info(`Verification of electronic signature: ${flag}`);
                     if (flag) {
                         client.friendsKeys.push(JSON.parse(obj.M).key);
@@ -164,28 +166,30 @@ class Client {
                         let data = {
                             name: client.name,
                             recipient: client.friends[1],
-                            R: R,
+                            R: {value: R, hash: md5(client.R)},
                             event: "Step_3",
                         };
                         client.socket.write(JSON.stringify(data));
+                    } else {
+                        console.error("E-subscription is not valid");
                     }
                 } else if (obj.event === "Step_3") {
                     console.log("[STEP_4]\n", client.name, "received from", obj.name);
                     client.friends.push(obj.name);
-                    client.R = client.messageDecoding([obj.R], client.n, false)[0];
+                    client.R = client.messageDecoding([obj.R.value], [obj.R.hash], client.n, false)[0];
                     let R = modExponentiation(client.R, 2, client.friendsKeys[0].n);
                     console.log("R:", client.R, "encoded R:", R);
                     let data = {
                         name: client.name,
                         recipient: client.friends[0],
                         friend: client.friends[1],
-                        R: R,
+                        R: {value: R, hash: md5(client.R)},
                         event: "Step_4"
                     };
                     client.socket.write(JSON.stringify(data));
                 } else if (obj.event === "Step_4") {
                     console.log("[STEP_5]\n", client.name, "received from", obj.name);
-                    client.R = client.messageDecoding([obj.R], client.n, false)[0];
+                    client.R = client.messageDecoding([obj.R.value], [obj.R.hash], client.n, false)[0];
                     console.log("R:", client.R);
                     let M1 = JSON.stringify({key: this.friendsKeys[0]});
                     let S1 = M1.split('').map(char => modExponentiation(char.charCodeAt(0), client.d, client.n));
@@ -197,29 +201,36 @@ class Client {
                     });
                     let M2_encoded = M2.split('').map(m => modExponentiation(m.charCodeAt(0), 2, client.friendsKeys[1].n));
                     let S2 = M2.split('').map(char => modExponentiation(char.charCodeAt(0), client.d, client.n));
-                    console.log(S2);
                     let S2_encoded = S2.map(m => modExponentiation(m, 2, client.friendsKeys[1].n));
-                    console.log(M2, M2_encoded, S2, S2_encoded);
+                    console.log(M1, M2);
+                    console.log(S2);
+                    console.log(S2_encoded);
                     let data = {
                         name: client.name,
                         recipient: client.friends[1],
-                        M: [M1, M2_encoded],
-                        S: [S1, S2_encoded],
+                        M: [M1, {value: M2_encoded, hash: M2.split('').map(e => md5(e.charCodeAt(0)))}],
+                        S: [S1, {value: S2_encoded, hash: S2.map(e => md5(e))}],
                         event: "Step_5",
                     };
                     client.socket.write(JSON.stringify(data));
                 } else if (obj.event === "Step_5") {
                     console.log("[STEP_6]\n", client.name, "received from", obj.name);
                     console.log(obj);
-                    console.log(obj.M[1], obj.S[1]);
-                    let M2_decoded = client.messageDecoding(obj.M[1], client.n, true);
-                    let S2_decoded = client.messageDecoding(obj.S[1], client.n, false);
+                    let M2_decoded = client.messageDecoding(obj.M[1].value, obj.M[1].hash, client.n, true);
+                    let S2_decoded = client.messageDecoding(obj.S[1].value, obj.S[1].hash, client.n, false);
                     let m1 = obj.S[0].map(char => String.fromCharCode(
                         modExponentiation(char, client.friendsKeys[0].e, client.friendsKeys[0].n))).join('');
                     let m2 = S2_decoded.map(char => String.fromCharCode(
                         modExponentiation(char, client.friendsKeys[0].e, client.friendsKeys[0].n))).join('');
-                    console.log(M2_decoded, S2_decoded);
-                    console.log(m1, m2);
+                    let flag = m1 === obj.M[0] && m2 === M2_decoded;
+                    console.log(m1, obj.M[0]);
+                    console.log(m2, M2_decoded);
+                    console.info(`Verification of electronic signature: ${flag}`);
+                    if (flag) {
+                        
+                    } else {
+                        console.error("E-subscription is not valid");
+                    }
                 }
             }
         });
@@ -247,13 +258,19 @@ class Client {
         client.socket.write(JSON.stringify(data));
     }
 
-    messageDecoding(arrayChar, key, flag) {
+    messageDecoding(encoded_message, hash, key, flag) {
+        const getResult = (arr, hash) => {
+            let result = arr.find(value => md5(value) === hash);
+            if (result === undefined)
+                result = arr.map(value => value + key).find(value => md5(value) === hash);
+            return result;
+        };
         let [a, b] = extendedEuclidean(this.key_p, this.key_q);
-        console.log("Encoded message: ", arrayChar);
+        console.log("Encoded message: ", encoded_message);
         console.log("p: ", this.key_p, "q: ", this.key_q);
         console.log("a: ", a, "b: ", b);
         let message = flag ? "" : [];
-        arrayChar.forEach(c => {
+        encoded_message.forEach((c, i) => {
             console.log("\nc: ", c);
             let r = modExponentiation(c, ((this.key_p + 1) / 4), this.key_p);
             let s = modExponentiation(c, ((this.key_q + 1) / 4), this.key_q);
@@ -264,22 +281,18 @@ class Client {
             let x = (t1 + t2) % key;
             let y = (t1 - t2) % key;
             if (Math.abs(Math.abs(x) - key) < Math.abs(x))
-                if (x > 0)
-                    x -= key;
-                else
-                    x += key;
+                x = x > 0 ? x - key : x + key;
             if (Math.abs(Math.abs(y) - key) < Math.abs(y))
-                if (y > 0)
-                    y -= key;
-                else
-                    y += key;
-            let result = [  x % key,
-                -x % key,
-                y % key,
-                -y % key].find(m => (m >= 0) && (m <= 1280));
-            if (result === undefined)
-                result = s;
+                y = y > 0 ? y - key : y + key;
+            let result = getResult(
+                [  x % key,
+                    -x % key,
+                    y % key,
+                    -y % key
+                ], hash[i]
+            );
             console.log("x: ", x % key, "y: ", y % key, "-x: ", -x % key, "-y: ", -y % key);
+            console.log("res", result);
             if (flag) {
                 let m = String.fromCharCode(result);
                 console.log("m: ", m);

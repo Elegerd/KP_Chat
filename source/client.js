@@ -18,10 +18,10 @@ class Client {
 
         let p, q;
         do {
-            p = this.getPrimeNumber(32, 128);
+            p = this.getPrimeNumber(128, 1024);
         } while (p % 4 !== 3);
         do {
-            q = this.getPrimeNumber(32, 128);
+            q = this.getPrimeNumber(128, 1024);
         } while (q % 4 !== 3);
         if (p < q)
             [p, q] = [q, p];
@@ -65,7 +65,7 @@ class Client {
                 let span = document.createElement('div');
                 let message = "";
                 obj.message.forEach(c => {
-                   message += String.fromCharCode(c);
+                   message += this.session_key !== 0 ? String.fromCharCode(c ^ this.session_key) : String.fromCharCode(c);
                 });
                 span.innerHTML = obj.name + " says: " + message + " ";
                 box.appendChild(span);
@@ -124,16 +124,20 @@ class Client {
                     console.log("...PROTOCOL START...");
                     console.log("[STEP_1]\n", client.name, "sends", obj.name);
                     let box = document.getElementById('chat-friend1');
-                    client.friends.push(box.value);
-                    box.disabled = true;
-                    let data = {
-                        name: client.name,
-                        recipient: obj.name,
-                        friend: client.friends[0],
-                        event: "Step_1",
-                    };
-                    console.log("My name: ", data.name, "Friend name: ", data.friend);
-                    client.socket.write(JSON.stringify(data));
+                    if (box.value !== "") {
+                        client.friends.push(box.value);
+                        box.disabled = true;
+                        let data = {
+                            name: client.name,
+                            recipient: obj.name,
+                            friend: client.friends[0],
+                            event: "Step_1",
+                        };
+                        console.log("My name: ", data.name, "Friend name: ", data.friend);
+                        client.socket.write(JSON.stringify(data));
+                    } else {
+                        console.error("You did not specify a friend's name!");
+                    }
                 } else if (obj.event === "Step_1") {
                     console.log("[STEP_2]\n", client.name, "received from", obj.name);
                     let encrypted = {
@@ -176,6 +180,9 @@ class Client {
                 } else if (obj.event === "Step_3") {
                     console.log("[STEP_4]\n", client.name, "received from", obj.name);
                     client.friends.push(obj.name);
+                    let box = document.getElementById('chat-friend1');
+                    box.value = client.friends[1];
+                    box.disabled = true;
                     client.R = client.messageDecoding([obj.R.value], [obj.R.hash], client.n, false)[0];
                     let R = modExponentiation(client.R, 2, client.friendsKeys[0].n);
                     console.log("R:", client.R, "encoded R:", R);
@@ -195,7 +202,7 @@ class Client {
                     let S1 = M1.split('').map(char => modExponentiation(char.charCodeAt(0), client.d, client.n));
                     let M2 = JSON.stringify({
                         R: client.R,
-                        session_key: getRandomInRange(128, 4096),
+                        session_key: getRandomInRange(1024, 4096),
                         A: client.friends[0],
                         B: client.friends[1]
                     });
@@ -215,7 +222,6 @@ class Client {
                     client.socket.write(JSON.stringify(data));
                 } else if (obj.event === "Step_5") {
                     console.log("[STEP_6]\n", client.name, "received from", obj.name);
-                    console.log(obj);
                     let M2_decoded = client.messageDecoding(obj.M[1].value, obj.M[1].hash, client.n, true);
                     let S2_decoded = client.messageDecoding(obj.S[1].value, obj.S[1].hash, client.n, false);
                     let m1 = obj.S[0].map(char => String.fromCharCode(
@@ -227,9 +233,82 @@ class Client {
                     console.log(m2, M2_decoded);
                     console.info(`Verification of electronic signature: ${flag}`);
                     if (flag) {
-                        
+                        let M1 = JSON.parse(m1);
+                        let M2 = JSON.parse(m2);
+                        if (client.R === M2.R) {
+                            client.friendsKeys.push(M1.key);
+                            document.getElementById('chat-friend1').value += `: ${client.friendsKeys[1].n}`;
+                            client.session_key = M2.session_key;
+                            let box = document.getElementById('chat-session-key');
+                            box.value = client.session_key;
+                            box.disabled = true;
+                            client.R = getRandomInRange(128, 1024);
+                            let M = JSON.stringify({
+                                M: M2,
+                                R: client.R,
+                            });
+                            let S = JSON.stringify({
+                                S: S2_decoded,
+                                R: client.R,
+                            });
+                            let M_encoded = M.split('').map(m => modExponentiation(m.charCodeAt(0), 2, client.friendsKeys[1].n));
+                            let S_encoded = S.split('').map(s => modExponentiation(s.charCodeAt(0), 2, client.friendsKeys[1].n));
+                            console.log(M, M_encoded);
+                            console.log(S, S_encoded);
+                            let data = {
+                                name: client.name,
+                                recipient: client.friends[1],
+                                M: {value: M_encoded, hash: M.split('').map(e => md5(e.charCodeAt(0)))},
+                                S: {value: S_encoded, hash: S.split('').map(e => md5(e.charCodeAt(0)))},
+                                event: "Step_6",
+                            };
+                            client.socket.write(JSON.stringify(data));
+                        } else {
+                            console.error("Random number does not match");
+                        }
                     } else {
                         console.error("E-subscription is not valid");
+                    }
+                } else if (obj.event === "Step_6") {
+                    console.log("[STEP_7]\n", client.name, "received from", obj.name);
+                    let M_decoded = client.messageDecoding(obj.M.value, obj.M.hash, client.n, true);
+                    let S_decoded = client.messageDecoding(obj.S.value, obj.S.hash, client.n, true);
+                    let M = JSON.parse(M_decoded);
+                    let S = JSON.parse(S_decoded);
+                    let m = S.S.map(char => String.fromCharCode(
+                        modExponentiation(char, client.friendsKeys[0].e, client.friendsKeys[0].n))).join('');
+                    console.log(M_decoded, obj.M.value);
+                    console.log(S_decoded, obj.S.value);
+                    let flag = m === JSON.stringify(M.M);
+                    console.info(`Verification of electronic signature: ${flag}`);
+                    console.log(m, JSON.stringify(M.M));
+                    if (flag) {
+                        if (client.R === M.M.R) {
+                            client.R = M.R;
+                            client.session_key = M.M.session_key;
+                            let box = document.getElementById('chat-session-key');
+                            box.value = client.session_key;
+                            box.disabled = true;
+                            let data = {
+                                name: client.name,
+                                recipient: client.friends[1],
+                                R: client.R ^ client.session_key,
+                                event: "Step_7",
+                            };
+                            client.socket.write(JSON.stringify(data));
+                        } else {
+                            console.error("Random number does not match");
+                        }
+                    } else {
+                        console.error("E-subscription is not valid");
+                    }
+                } else if (obj.event === "Step_7") {
+                    console.log("[STEP_8]\n", client.name, "received from", obj.name);
+                    let R = obj.R ^ client.session_key;
+                    if (client.R === R) {
+                        console.log("...END OF PROTOCOL...");
+                    } else {
+                        console.error("Random number does not match");
                     }
                 }
             }
@@ -246,23 +325,30 @@ class Client {
     }
 
     sendMessage(message) {
-        let arrayM = message.split('').map(x => x.charCodeAt(0));
-        let arrayC = arrayM.map(m => m ^ this.session_key);
-        console.log("m: ", arrayM);
-        console.log("c: ", arrayC);
-        let client = this;
-        let data = {
-            name: this.name,
-            message: arrayC,
-        };
-        client.socket.write(JSON.stringify(data));
+        if (this.session_key !== 0) {
+            let arrayM = message.split('').map(x => x.charCodeAt(0));
+            let arrayC = arrayM.map(m => m ^ this.session_key);
+            console.log("m: ", arrayM);
+            console.log("c: ", arrayC);
+            let client = this;
+            let data = {
+                name: this.name,
+                message: arrayC,
+            };
+            client.socket.write(JSON.stringify(data));
+        } else {
+            console.error("To send messages, set a session key!")
+        }
     }
 
     messageDecoding(encoded_message, hash, key, flag) {
         const getResult = (arr, hash) => {
             let result = arr.find(value => md5(value) === hash);
-            if (result === undefined)
-                result = arr.map(value => value + key).find(value => md5(value) === hash);
+            let result_array = arr;
+            while (result === undefined) {
+                result_array = result_array.map(value => value + key);
+                result = result_array.find(value => md5(value) === hash);
+            }
             return result;
         };
         let [a, b] = extendedEuclidean(this.key_p, this.key_q);
@@ -292,7 +378,6 @@ class Client {
                 ], hash[i]
             );
             console.log("x: ", x % key, "y: ", y % key, "-x: ", -x % key, "-y: ", -y % key);
-            console.log("res", result);
             if (flag) {
                 let m = String.fromCharCode(result);
                 console.log("m: ", m);

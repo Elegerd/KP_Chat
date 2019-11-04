@@ -1,6 +1,5 @@
 const net = require('net');
 const getRandomInRange = require('./algorithm/random_number');
-const testMillerRabin = require('./algorithm/test_miller_rabin');
 const Server = require('./server');
 
 let server = null;
@@ -11,21 +10,11 @@ class Client {
         this.socket = new net.Socket();
         this.address = address;
         this.port = port;
-        let p, q;
-        do {
-            p = this.getPrimeNumber(128, 1024);
-        } while (p % 4 !== 3);
-        do {
-            q = this.getPrimeNumber(128, 1024);
-        } while (q % 4 !== 3);
-        if (p < q)
-            [p, q] = [q, p];
-        this.key_p = p;
-        this.key_q = q;
-        this.public_key = p * q;
-        this.session_key = 0;
         this.friends = [];
         this.friendsKeys = [];
+        this.key = getRandomInRange(64, 65535);
+        console.log("Key: ", this.key);
+        this.session_key = 0;
         this.init();
     }
 
@@ -47,7 +36,7 @@ class Client {
                 let span = document.createElement('div');
                 let message = "";
                 obj.message.forEach(c => {
-                   message += String.fromCharCode(c);
+                    message += client.session_key !== 0 ? String.fromCharCode(c ^ client.session_key) : String.fromCharCode(c);
                 });
                 span.innerHTML = obj.name + " says: " + message + " ";
                 box.appendChild(span);
@@ -56,60 +45,54 @@ class Client {
                 let span = document.createElement('div');
                 let text = "Chat now: ";
                 obj.users.forEach(user => {
-                    text += "[" + user + "] ";
+                    text+= "[" + user + "] ";
                 });
                 span.innerHTML = text;
                 box.appendChild(span);
             } else if (obj.event) {
-                if ((obj.event === "Step_0" || obj.event === "Step_-1") && obj.key !== undefined) {
+                if (obj.event === "Step_-1" && obj.key !== undefined) {
                     client.friendsKeys.push(obj.key);
-                    let box = document.getElementById('chat-friend' + client.friendsKeys.length);
-                    box.value = JSON.stringify(obj.key);
+                    let box = document.getElementById('chat-friend-name1');
+                    box.value = obj.key;
                     box.disabled = true;
-                    let data;
-                    if (client.friendsKeys.length < 2)
-                        data = {
-                            name: client.name,
-                            friend: client.friends[1],
-                            event: "Step_0",
-                            public_key: client.public_key
-                        };
-                    else
-                        data = {
-                            name: client.name,
-                            friend: client.friends[0],
-                            event: "Start",
-                        };
-                    client.socket.write(JSON.stringify(data))
-                } else if (obj.event === "Step_0") {
-                    let box = document.getElementById('chat-friend1');
-                    let box2 = document.getElementById('chat-friend2');
-                    box.value = client.public_key;
-                    box2.value = obj.public_key;
-                    client.friendsKeys.push(obj.public_key);
-                    let key = {
-                        public_key: client.public_key,
-                        private_key: {
-                            p: client.key_p,
-                            q: client.key_q,
-                        }
-                    };
                     let data = {
                         name: client.name,
-                        friend: obj.name,
-                        key: key,
+                        recipient: client.friends[1],
+                        event: "Step_0"
+                    };
+                    client.socket.write(JSON.stringify(data));
+                } else if (obj.event === "Step_0" && obj.key !== undefined) {
+                    client.friendsKeys.push(obj.key);
+                    let box = document.getElementById('chat-friend-name2');
+                    box.value = obj.key;
+                    box.disabled = true;
+                    let data = {
+                        name: client.name,
+                        recipient: client.friends[0],
+                        friend: client.friends[1],
+                        event: "Start"
+                    };
+                    client.socket.write(JSON.stringify(data))
+                } else if (obj.event === "Step_-1" || obj.event === "Step_0") {
+                    let data = {
+                        name: client.name,
+                        recipient: obj.name,
+                        key: client.key,
                         event: obj.event
                     };
                     client.socket.write(JSON.stringify(data));
                 } else if (obj.event === "Start") {
+                    client.friends = [];
+                    client.friends.push(obj.friend);
                     console.log("...PROTOCOL START...");
-                    let box = document.getElementById('chat-friend-name');
-                    box.disabled = true;
+                    let box = document.getElementById('chat-friend-name1');
+                    document.getElementById('chat-friend-name2').disabled = true;
                     box.value = client.friends[0];
+                    box.disabled = true;
                     console.log("[STEP_1]\n", client.name, "sends", obj.name);
                     let data = {
                         name: client.name,
-                        trent: obj.name,
+                        recipient: obj.name,
                         friend: client.friends[0],
                         event: "Step_1",
                     };
@@ -133,7 +116,8 @@ class Client {
                     console.log("Ekb = ", Ekb);
                     console.log("Eka = ", Eka);
                     let data = {
-                        friend: client.friends[0],
+                        name: client.name,
+                        recipient: client.friends[0],
                         Ekb: Ekb,
                         Eka: Eka,
                         event: "Step_2",
@@ -156,7 +140,8 @@ class Client {
                         client.session_key = decode_Eka.K;
                         let Ek = encoding(T, client.name, client.session_key);
                         let data = {
-                            friend: client.friends[0],
+                            name: client.name,
+                            recipient: client.friends[0],
                             Ekb: obj.Ekb,
                             Ek: Ek,
                             event: "Step_3",
@@ -178,8 +163,8 @@ class Client {
                     client.friends.push(decode_Ekb.NAME);
                     client.session_key = decode_Ekb.K;
                     document.getElementById('chat-session-key').value = client.session_key;
-                    let box = document.getElementById('chat-friend-name2');
-                    document.getElementById('chat-friend-name1').disabled = true;
+                    let box = document.getElementById('chat-friend-name1');
+                    document.getElementById('chat-friend-name2').disabled = true;
                     box.value = client.friends[0];
                     box.disabled = true;
                     let decode_Ek = client.decoding(obj.Ek, client.session_key);
@@ -187,9 +172,10 @@ class Client {
                     console.log("decode_Ek = ", decode_Ek);
                     let T = client.getTimeStamp();
                     if (T - decode_Ek.T <= decode_Ekb.L) {
-                        let Ek = encoding((T + (1 * 1000)), client.session_key);
+                        let Ek = encoding((T + (1000)), client.session_key);
                         let data = {
-                            friend: client.friends[0],
+                            name: client.name,
+                            recipient: client.friends[0],
                             Ek: Ek,
                             event: "Step_4",
                         };
@@ -222,17 +208,33 @@ class Client {
         });
     }
 
+    getTimeStamp() {
+        let date = new Date();
+        date.setDate(date.getDate() - 1);
+        date.setHours(12, 0, 0);
+        return parseInt(new Date().getTime()) - parseInt(date.getTime());
+    }
+
+    decoding(e, key) {
+        let obj = e.map(char => String.fromCharCode(char ^ key)).join('');
+        return JSON.parse(obj);
+    };
+
     sendMessage(message) {
-        let arrayM = message.split('').map(x => x.charCodeAt(0));
-        let arrayC = arrayM.map(m => m ^ this.session_key);
-        console.log("m: ", arrayM);
-        console.log("c: ", arrayC);
-        let client = this;
-        let data = {
-            name: this.name,
-            message: arrayC,
-        };
-        client.socket.write(JSON.stringify(data));
+        if (this.session_key !== 0) {
+            let arrayM = message.split('').map(x => x.charCodeAt(0));
+            let arrayC = arrayM.map(m => m ^ this.session_key);
+            console.log("m: ", arrayM);
+            console.log("c: ", arrayC);
+            let client = this;
+            let data = {
+                name: this.name,
+                message: arrayC,
+            };
+            client.socket.write(JSON.stringify(data));
+        } else {
+            console.error("To send messages, set a session key!")
+        }
     }
 
     startProtocol(data) {
@@ -243,20 +245,10 @@ class Client {
         client.friends.push(data.friend_name2);
         let dataFriend = {
             name : client.name,
-            friend: client.friends[0],
-            event: "Step_0",
-            public_key: client.public_key
+            recipient: client.friends[0],
+            event: "Step_-1",
         };
         client.socket.write(JSON.stringify(dataFriend))
-    }
-
-    getPrimeNumber(left, right) {
-        let prime, isPrimeNumber;
-        do {
-            prime = getRandomInRange(left, right);
-            isPrimeNumber = testMillerRabin(prime, 10);
-        } while (!isPrimeNumber);
-        return prime;
     }
 }
 module.exports = Client;

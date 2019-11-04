@@ -1,38 +1,37 @@
 <!DOCTYPE html>
 <html>
-  <head>
-    <meta charset="UTF-8">
-    <link rel="stylesheet" type="text/css" href="index.css">
-    <link rel="stylesheet" type="text/css" href="chat_room.css">
-    <script src="index.js"></script>
-  </head>
-  <body>
-    <div id="auth" class="div-auth">
-      <h2>Enter the chat</h2>
-      <div class="form">
-        <input id="client-name" type="text" placeholder="Username">
-        <button id="btn-auth" onclick="connectServer()">Sign in</button>
-      </div>
+<head>
+  <meta charset="UTF-8">
+  <link rel="stylesheet" type="text/css" href="index.css">
+  <link rel="stylesheet" type="text/css" href="chat_room.css">
+  <script src="index.js"></script>
+</head>
+<body>
+<div id="auth" class="div-auth">
+  <h2>Enter the chat</h2>
+  <div class="form">
+    <input id="client-name" type="text" placeholder="Username">
+    <button id="btn-auth" onclick="connectServer()">Sign in</button>
+  </div>
+</div>
+<div id="chat" class="chat-space">
+  <div class="chat-room" id="chat-box">
+  </div>
+  <div class="chat-message">
+    <div class="chat-div">
+      <input id="chat-input" type="text">
+      <button id="btn-send" onclick="send()">Send</button>
     </div>
-    <div id="chat" class="chat-space">
-      <div class="chat-room" id="chat-box">
-      </div>
-      <div class="chat-message">
-        <div class="chat-div">
-          <input id="chat-input" type="text">
-          <button id="btn-send" onclick="send()">Send</button>
-        </div>
-        <div class="chat-div">
-          <input id="chat-name" type="text" disabled>
-          <input id="chat-friend-name" class="chat-friend-name" type="text" placeholder="Friend name">
-          <input id="chat-session-key" type="text" placeholder="Session key" disabled>
-        </div>
-        <div class="chat-div">
-          <input id="chat-friend1" class="chat-friend-name" type="text" placeholder="First friend's name || key">
-          <input id="chat-friend2" class="chat-friend-name" type="text" placeholder="Second friend's name || key">
-          <button id="btn-set" onclick="startProtocol()">Start</button>
-        </div>
-      </div>
+    <div class="chat-div">
+      <input id="chat-name" type="text" disabled>
+      <input id="chat-session-key" type="text" placeholder="Session key" disabled>
     </div>
-  </body>
+    <div class="chat-div">
+      <input id="chat-friend-name1" class="chat-friend-name" type="text" placeholder="First friend's name">
+      <input id="chat-friend-name2" class="chat-friend-name" type="text" placeholder="Second friend's name">
+      <button id="btn-set" onclick="startProtocol()">Start</button>
+    </div>
+  </div>
+</div>
+</body>
 </html>

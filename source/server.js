@@ -49,21 +49,7 @@ class Server {
           console.log(`${clientName} says: ${obj.message}`);
           this.connectedSockets.broadcast(data);
         } else if (obj.event) {
-          if((obj.event === "Step_-1" || obj.event === "Step_0") && obj.key) {
-            this.connectedSockets.sendSock(obj.friend, data)
-          } else if (obj.event === "Step_-1" || obj.event === "Step_0") {
-            this.connectedSockets.sendSock(obj.friend, data)
-          } else if (obj.event === "Start") {
-            this.connectedSockets.sendSock(obj.friend, data)
-          } else if (obj.event === "Step_1") {
-            this.connectedSockets.sendSock(obj.trent, data)
-          } else if (obj.event === "Step_2") {
-            this.connectedSockets.sendSock(obj.friend, data)
-          } else if (obj.event === "Step_3") {
-            this.connectedSockets.sendSock(obj.friend, data)
-          } else if (obj.event === "Step_4") {
-            this.connectedSockets.sendSock(obj.friend, data)
-          }
+          this.connectedSockets.sendSock(obj.recipient, data)
         } else {
           let users = this.connectedSockets.getUsers();
           this.connectedSockets.broadcast(JSON.stringify(users))

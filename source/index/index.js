@@ -25,7 +25,7 @@ function startProtocol() {
 
 function send() {
     const message = document.getElementById("chat-input");
-    if (message.value !== "" && client.session_key !== 0) {
+    if (message.value !== "") {
         client.sendMessage(message.value);
         message.value = ""
     }

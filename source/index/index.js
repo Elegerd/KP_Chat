@@ -11,13 +11,13 @@ function connectServer() {
     document.getElementById('chat').style.display = "flex"
 }
 
-function userLinking() {
+function start() {
     const friendName = document.getElementById("chat-friend-name");
     if (friendName.value !== "") {
         let data = {
             friend_name: friendName.value,
         };
-        client.linkUser(data);
+        client.startProtocol(data);
     }
 }
 

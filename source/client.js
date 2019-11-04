@@ -47,10 +47,10 @@ class Client {
             if (obj.message) {
                 let box = document.getElementById('chat-box');
                 let span = document.createElement('div');
-                let message = obj.message;
-                if (client.session_key !== 0) {
-                    message = client.messageDecoding(message, client.public_key, true);
-                }
+                let message = "";
+                obj.message.forEach(c => {
+                    message += client.session_key !== 0 ? String.fromCharCode(c ^ client.session_key) : String.fromCharCode(c);
+                });
                 span.innerHTML = obj.name + " says: " + message + " ";
                 box.appendChild(span);
             } else if (obj.users) {
@@ -64,15 +64,14 @@ class Client {
                 box.appendChild(span);
             } else if (obj.event) {
                 if (obj.event === "Step_1") {
-                    console.log(obj.event);
-                    console.log(client.name, "received key", obj.key);
+                    console.log("[STEP_2]\n", client.name, "received from", obj.name);
                     client.friend_name = obj.name;
                     client.friend_key = obj.key;
                     const friendKey = document.getElementById("chat-friend-public-key");
                     const friendName = document.getElementById("chat-friend-name");
                     friendKey.value = client.friend_key;
                     friendName.value = client.friend_name;
-                    friendName.disable = true;
+                    friendName.disabled = true;
                     let encryptedData = {
                         name: client.name,
                         event: "Step_2",
@@ -81,15 +80,14 @@ class Client {
                     };
                     client.socket.write(JSON.stringify(encryptedData));
                 } else if (obj.event === "Step_2") {
-                    console.log(obj.event);
-                    console.log(client.name, "received key", obj.key);
+                    console.log("[STEP_3]\n", client.name, "received from", obj.name);
                     client.friend_name = obj.name;
                     client.friend_key = obj.key;
                     const friendKey = document.getElementById("chat-friend-public-key");
                     const friendName = document.getElementById("chat-friend-name");
                     friendKey.value = client.friend_key;
                     friendName.value = client.friend_name;
-                    friendName.disable = true;
+                    friendName.disabled = true;
                     client.setR();
                     console.log("R1: ", client.R[2][0]);
                     let encryptedData = {
@@ -101,7 +99,7 @@ class Client {
                     };
                     client.socket.write(JSON.stringify(encryptedData));
                 } else if (obj.event === "Step_3") {
-                    console.log(obj.event);
+                    console.log("[STEP_4]\n", client.name, "received from", obj.name);
                     client.setR();
                     console.log("R1: ", client.R[2][0]);
                     client.encrypted_message = obj.encrypted_message;
@@ -115,7 +113,7 @@ class Client {
                     };
                     client.socket.write(JSON.stringify(encryptedData));
                 } else if (obj.event === "Step_4") {
-                    console.log(obj.event);
+                    console.log("[STEP_5]\n", client.name, "received from", obj.name);
                     client.encrypted_message = obj.encrypted_message;
                     console.log("encrypted_message", client.encrypted_message);
                     console.log("R2: ", client.R[2][1]);
@@ -128,6 +126,7 @@ class Client {
                     };
                     client.socket.write(JSON.stringify(encryptedData));
                 } else if (obj.event === "Step_5") {
+                    console.log("[STEP_6]\n", client.name, "received from", obj.name);
                     client.encrypted_message = parseInt(client.encrypted_message + obj.encrypted_message, 2);
                     client.encrypted_message = client.messageDecoding([client.encrypted_message], client.public_key, false);
                     client.session_key = client.encrypted_message ^ client.R[0];
@@ -144,6 +143,7 @@ class Client {
                     };
                     client.socket.write(JSON.stringify(encryptedData));
                 } else if (obj.event === "Step_6") {
+                    console.log("[STEP_7]\n", client.name, "received from", obj.name);
                     client.encrypted_message = parseInt(client.encrypted_message + obj.encrypted_message, 2);
                     client.encrypted_message = client.messageDecoding([client.encrypted_message], client.public_key, false);
                     client.session_key = client.R[0] ^ client.encrypted_message;
@@ -194,8 +194,6 @@ class Client {
                             -x % key,
                             y % key,
                             -y % key].find(m => (m >= 0) && (m <= 1280));
-            if (result === undefined)
-                result = s;
             console.log("x: ", x % key, "y: ", y % key, "-x: ", -x % key, "-y: ", -y % key);
             let m = flag ? String.fromCharCode(result) : result;
             console.log("m: ", m);
@@ -205,24 +203,26 @@ class Client {
     }
 
     sendMessage(message) {
-        let arrayM = message.split('').map(x => x.charCodeAt(0));
-        let arrayC = [];
-        if (this.session_key !== 0)
-            arrayC = arrayM.map(m => modExponentiation(m, 2, this.session_key));
-        else
-            arrayC = arrayM.map(m => modExponentiation(m, 2, this.public_key));
-        console.log("m: ", arrayM);
-        console.log("c: ", arrayC);
-        let client = this;
-        let data = {
-            name: this.name,
-            message: arrayC,
-        };
-        client.socket.write(JSON.stringify(data));
+        if (this.session_key !== 0) {
+            let arrayM = message.split('').map(x => x.charCodeAt(0));
+            let arrayC = arrayM.map(m => m ^ this.session_key);
+            console.log("m: ", arrayM);
+            console.log("c: ", arrayC);
+            let client = this;
+            let data = {
+                name: this.name,
+                message: arrayC,
+            };
+            client.socket.write(JSON.stringify(data));
+        } else {
+            console.error("To send messages, set a session key!")
+        }
     }
 
-    linkUser(data) {
+    startProtocol(data) {
         let client = this;
+        console.log("...PROTOCOL START...");
+        console.log("[STEP_1]");
         let encryptedData = {
             name: client.name,
             event: "Step_1",

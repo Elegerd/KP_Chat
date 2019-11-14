@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8">
     <link rel="stylesheet" type="text/css" href="index.css">
-    <link rel="stylesheet" type="text/css" href="chat_room.css">
+    <link rel="stylesheet" type="text/css" href="poker_room.css">
     <script src="index.js"></script>
   </head>
   <body>
@@ -14,22 +14,30 @@
         <button id="btn-auth" onclick="connectServer()">Sign in</button>
       </div>
     </div>
-    <div id="chat" class="chat-space">
-      <div class="chat-room" id="chat-box">
-      </div>
-      <div class="chat-message">
-        <div class="chat-div">
-          <input id="chat-input" type="text">
-          <button id="btn-send" onclick="send()">Send</button>
+    <div id="poker" class="poker-space">
+      <div class="poker-room" id="poker-box">
+        <div class="game-space">
+
         </div>
-        <div class="chat-div">
-          <input id="chat-name" type="text" disabled>
-          <input id="chat-session-key" type="text" placeholder="Session key" disabled>
-        </div>
-        <div class="chat-div">
-          <input id="chat-friend1" class="chat-friend-name" type="text" placeholder="First friend's name || key">
-          <input id="chat-friend2" class="chat-friend-name" type="text" placeholder="Second friend's name || key">
-          <button id="btn-set" onclick="startProtocol()">Start</button>
+        <div class="player-space">
+          <div class="player-box">
+            <div class="player-avatar" id="player-avatar-1">
+            </div>
+            <div class="player-name" id="player-name-1">
+            </div>
+          </div>
+          <div class="player-box">
+            <div class="player-avatar" id="player-avatar-2">
+            </div>
+            <div class="player-name" id="player-name-2">
+            </div>
+          </div>
+          <div class="player-box">
+            <div class="player-avatar" id="player-avatar-3">
+            </div>
+            <div class="player-name" id="player-name-3">
+            </div>
+          </div>
         </div>
       </div>
     </div>

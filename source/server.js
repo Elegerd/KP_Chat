@@ -5,30 +5,47 @@ class Server {
     this.port = port;
     this.address = address;
     this.connectedSockets = new Set();
+    this.players = [];
+    this.statePlayers = [];
     this.init();
   }
+
+  setPlayers(){
+    let server = this;
+    server.players = [];
+    for (let sock of server.connectedSockets) {
+      if(sock.username && server.players.length < 3)
+        server.players.push(sock.username);
+    }
+  };
+
+  getState() {
+    return {
+      "players": this.players,
+      "state": this.statePlayers,
+    };
+  }
+
+  readyPlayer(obj) {
+    let server = this;
+    let index = server.players.findIndex(player => player === obj.name);
+    server.statePlayers[index] = obj.ready;
+    let data = {
+      state: server.statePlayers,
+    };
+    server.connectedSockets.broadcast(JSON.stringify(data))
+  };
 
   init() {
     let server = this;
 
-    this.connectedSockets.broadcast = function(data) {
+    server.connectedSockets.broadcast = function(data) {
       for (let sock of this) {
           sock.write(data);
       }
     };
 
-    this.connectedSockets.getUsers = function() {
-      let data = {
-        "users" : [],
-      };
-      for (let sock of this) {
-        if(sock.username)
-          data.users.push(sock.username)
-      }
-      return data;
-    };
-
-    this.connectedSockets.sendSock = function(name, data) {
+    server.connectedSockets.sendSock = function(name, data) {
       for (let sock of this) {
         if (sock.username && sock.username === name) {
           sock.write(data);
@@ -36,35 +53,60 @@ class Server {
       }
     };
 
+    server.connectedSockets.sendPlayer = function(data) {
+      for (let sock of this) {
+        if (sock.username && server.players.includes(sock.username)) {
+          sock.write(data);
+        }
+      }
+    };
+
     let onClientConnected = (sock) => {
-      this.connectedSockets.add(sock);
+      server.connectedSockets.add(sock);
       let clientName = `${sock.remoteAddress}:${sock.remotePort}`;
       console.log(`New client connected: ${clientName}`);
 
       sock.on('data', (data) => {
         let obj = JSON.parse(data);
-        if (sock.username === undefined)
+        if (sock.username === undefined) {
           sock.username = obj.name;
+          server.setPlayers();
+        }
         if (obj.message) {
           console.log(`${clientName} says: ${obj.message}`);
-          this.connectedSockets.broadcast(data);
+          server.connectedSockets.broadcast(data);
         } else if (obj.event) {
-          this.connectedSockets.sendSock(obj.recipient, data)
+          server.connectedSockets.sendSock(obj.recipient, data)
+        } else if (obj.ready !== undefined) {
+          server.readyPlayer(obj);
         } else {
-          let users = this.connectedSockets.getUsers();
-          this.connectedSockets.broadcast(JSON.stringify(users))
+          let state = server.getState();
+          server.connectedSockets.broadcast(JSON.stringify(state));
         }
       });
 
       sock.on('close', () => {
         console.log(`Connection from ${clientName} closed`);
-        this.connectedSockets.delete(sock);
-        let users = this.connectedSockets.getUsers();
-        this.connectedSockets.broadcast(JSON.stringify(users))
+        let index = server.players.findIndex(player => player === sock.username);
+        server.connectedSockets.delete(sock);
+        if (index !== -1) {
+          server.setPlayers();
+          server.statePlayers = [false, false, false];
+          let state = server.getState();
+          server.connectedSockets.broadcast(JSON.stringify(state));
+        }
+        server.connectedSockets.delete(sock);
       });
 
       sock.on('error', (err) => {
         console.log(`Connection ${clientName} error: ${err.message}`);
+        if (err.code === 'EADDRINUSE') {
+          console.log('Address in use, retrying...');
+          setTimeout(() => {
+            server.close();
+            server.listen(server.port, server.address);
+          }, 1000);
+        }
       });
     };
 

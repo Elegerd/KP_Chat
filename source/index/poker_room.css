@@ -5,7 +5,6 @@
     overflow: hidden;
     box-sizing: border-box;
 }
-
 .poker-room {
     display: flex;
     flex-direction: column;
@@ -16,48 +15,46 @@
     background: url(../../resources/images/desk.jpg) no-repeat center;
     background-size: 100%;
 }
-
 .game-space {
     height: 100%;
 }
-
 .player-space {
     display: flex;
-    flex: 0 2 auto;
+    flex: 0 3 auto;
     flex-direction: row;
     height: 100%;
 }
-
 .player-box {
     display: flex;
     flex-direction: column;
     height: 100%;
-    flex: 1 0 auto;
+    flex: 0 4 100%;
     border: 1px solid rgba(135, 108, 153, 1);
+    background: #4d384b;
+    font-size: 20px;
 }
-
 .player-avatar {
     height: 100%;
     flex: 0 2 auto;
-    margin: 0 20%;
-    background: wheat;
+    width: 25%;
+    max-width: 150px;
+    margin: 0 auto;
 }
-
 .player-name {
     height: 100%;
-    flex: 0 2 auto;
+    flex: 0 4 auto;
+    color: white;
+    text-align: center;
+    user-select: none;
 }
-
 #player-avatar-1 {
     background: url(../../resources/images/avatar-1.png) no-repeat center;
     background-size: 100%;
 }
-
 #player-avatar-2 {
     background: url(../../resources/images/avatar-2.png) no-repeat center;
     background-size: 100%;
 }
-
 #player-avatar-3 {
     background: url(../../resources/images/avatar-3.png) no-repeat center;
     background-size: 100%;

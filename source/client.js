@@ -17,17 +17,15 @@ class Client {
         this.port = port;
 
         let p, q;
+        p = this.getPrimeNumber(556, 564);
         do {
-            p = this.getPrimeNumber(128, 1024);
-        } while (p % 4 !== 3);
-        do {
-            q = this.getPrimeNumber(128, 1024);
-        } while (q % 4 !== 3);
+            q = this.getPrimeNumber(556, 564);
+        } while (q === p);
         if (p < q)
             [p, q] = [q, p];
         this.key_p = p;
         this.key_q = q;
-        this.n = p * q;
+        this.n = this.key_p * this.key_q;
         this.fi = (this.key_p - 1) * (this.key_q - 1);
         let e;
         do {
@@ -70,12 +68,94 @@ class Client {
             let obj = JSON.parse(data);
             if (obj.message) {
                 console.log(obj.message)
+            } else if (obj.event) {
+                if (obj.event === "Step_2") {
+                    console.log(`[STEP_3] -> ${client.name}`);
+                    let cards = client.game.pickUp(obj.cards, 5);
+                    let encoded_message = client.game.hands.map(message =>
+                        message.map(value => modExponentiation(value, client.e, client.n))
+                    );
+                    let data_1 = {
+                        name: client.name,
+                        recipient: client.game.players[0],
+                        event: "Step_3",
+                        cards: encoded_message
+                    };
+                    console.log(data_1);
+                    client.sendMessage(data_1);
+                    console.log(`[STEP_4] -> ${client.name}`);
+                    let data_2 = {
+                        name: client.name,
+                        recipient: client.game.players[2],
+                        event: "Step_4",
+                        cards: cards
+                    };
+                    console.log(data_2);
+                    client.sendMessage(data_2);
+                } else if (obj.event === "Step_3") {
+                    client.game.Eb = obj.cards;
+                } else if (obj.event === "Step_4") {
+                    console.log(`[STEP_5] -> ${client.name}`);
+                    client.game.cards = client.game.pickUp(obj.cards, 5);
+                    let encoded_message = client.game.hands.map(message =>
+                        message.map(value => modExponentiation(value, client.e, client.n))
+                    );
+                    let data = {
+                        name: client.name,
+                        recipient: client.game.players[0],
+                        event: "Step_5",
+                        cards: encoded_message
+                    };
+                    client.sendMessage(data);
+                } else if (obj.event === "Step_5") {
+                    console.log(`[STEP_6] -> ${client.name}`);
+                    client.game.Ec = obj.cards;
+                    let decoded_message_Eb = client.game.Eb.map(message =>
+                        message.map(value => modExponentiation(value, client.d, client.n))
+                    );
+                    let decoded_message_Ec = client.game.Ec.map(message =>
+                        message.map(value => modExponentiation(value, client.d, client.n))
+                    );
+                    client.game.Eb = client.game.Ec = null;
+                    let data_1 = {
+                        name: client.name,
+                        recipient: client.game.players[1],
+                        event: "Step_6",
+                        cards: decoded_message_Eb
+                    };
+                    console.log(data_1);
+                    client.sendMessage(data_1);
+                    let data_2 = {
+                        name: client.name,
+                        recipient: client.game.players[2],
+                        event: "Step_6",
+                        cards: decoded_message_Ec
+                    };
+                    console.log(data_2);
+                    client.sendMessage(data_2);
+                } else if (obj.event === "Step_6") {
+                    console.log(`[STEP_7] -> ${client.name}`);
+                    let messages = [];
+                    let decoded_messages = obj.cards.map(message =>
+                        message.map(value => modExponentiation(value, client.d, client.n))
+                    );
+                    console.log(decoded_messages);
+                    decoded_messages.forEach(message => {
+                        let result = "";
+                        message.forEach(m => {
+                            result += String.fromCharCode(m);
+                        });
+                        messages.push(result);
+                    });
+                    console.log(messages);
+                }
             } else if (obj.state) {
                 if (obj.players)
                     for (let i = 0; i < 3; i++) {
                         let name = document.getElementById(`player-name-${i + 1}`);
                         name.innerHTML = client.game.players[i] = obj.players[i] || "PLAYER " + (i + 1);
                         if (client.game.players[i] === client.name) {
+                            client.game.index = i;
                             name.style.fontWeight = 'bold';
                             name.style.cursor = 'pointer';
                             name.onclick = () => client.game.ready(client);
@@ -89,7 +169,8 @@ class Client {
                     let box = document.getElementById(`player-box-${index + 1}`);
                     client.game.playerReadiness[index] = state;
                     box.style.background = state ? "green" : "#4d384b";
-                })
+                });
+                client.game.stage == null && client.game.isReady(client);
             }
         });
 
@@ -108,19 +189,23 @@ class Client {
         });
     }
 
-    sendMessage(message) {
-        let arrayM = message.split('').map(x => x.charCodeAt(0));
-        console.log("m: ", arrayM);
-        let client = this;
-        let data = {
-            name: this.name,
-            message: arrayM,
-        };
-        client.socket.write(JSON.stringify(data));
+    encryptMessage(message, e, n) {
+        return message.split('').map(
+            m => modExponentiation(m.charCodeAt(0), e, n)
+        );
     }
 
-    startProtocol(data) {
+    decryptMessage(message, d, n) {
+        let result = "";
+        message.forEach(m => {
+           result += String.fromCharCode(modExponentiation(m, d, n));
+        });
+        return result;
+    }
+
+    sendMessage(data) {
         let client = this;
+        client.socket.write(JSON.stringify(data));
     }
 
     getPrimeNumber(left, right) {

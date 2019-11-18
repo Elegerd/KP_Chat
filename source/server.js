@@ -6,6 +6,8 @@ class Server {
     this.address = address;
     this.connectedSockets = new Set();
     this.players = [];
+    this.playersKeys = [null, null, null];
+    this.playersCards = [null, null, null];
     this.statePlayers = [];
     this.init();
   }
@@ -34,6 +36,20 @@ class Server {
       state: server.statePlayers,
     };
     server.connectedSockets.broadcast(JSON.stringify(data))
+  };
+
+  endGame(obj) {
+    let server = this;
+    let index = server.players.findIndex(player => player === obj.name);
+    server.playersCards[index] = obj.cards;
+    server.playersKeys[index] = obj.keys;
+    if (server.playersCards.indexOf(null) === -1) {
+      let data = {
+        player_cards: server.playersCards,
+        keys: server.playersKeys
+      };
+      server.connectedSockets.broadcast(JSON.stringify(data))
+    }
   };
 
   init() {
@@ -76,9 +92,15 @@ class Server {
           console.log(`${clientName} says: ${obj.message}`);
           server.connectedSockets.broadcast(data);
         } else if (obj.event) {
-          server.connectedSockets.sendSock(obj.recipient, data)
+          if (obj.event === "END") {
+            server.endGame(obj);
+          } else
+            server.connectedSockets.sendSock(obj.recipient, data)
         } else if (obj.ready !== undefined) {
           server.readyPlayer(obj);
+        } else if (obj.end !== undefined) {
+          server.playersCards = [null, null, null];
+          server.connectedSockets.broadcast(data);
         } else {
           let state = server.getState();
           server.connectedSockets.broadcast(JSON.stringify(state));

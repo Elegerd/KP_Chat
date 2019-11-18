@@ -7,6 +7,7 @@ class Game {
         this.index = null;
         this.stage = null;
         this.players = ["PLAYER 1", "PLAYER 2", "PLAYER 3"];
+        this.playersCards = [null, null, null];
         this.playerReadiness = [false, false, false];
         this.hands = [];
     }
@@ -93,9 +94,14 @@ class Game {
         let game = this;
         game.index = null;
         game.stage = null;
+        game.cards = null;
+        game.hands = null;
         game.players = ["PLAYER 1", "PLAYER 2", "PLAYER 3"];
+        game.playersCards = [null, null, null];
         game.playerReadiness = [false, false, false];
         for (let i = 0; i < 3; i++) {
+            let img = document.getElementById(`player-cards-img-${i + 1}`);
+            img !== null ? img.parentNode.removeChild(img) : null;
             let name = document.getElementById(`player-name-${i + 1}`);
             let box = document.getElementById(`player-box-${i + 1}`);
             box.style.background = "#4d384b";
@@ -104,6 +110,68 @@ class Game {
             name.style.cursor = 'default';
             name.onclick = null;
         }
+    }
+
+    showPlayersCards() {
+        let game = this;
+        let img = document.getElementById(`player-cards-img-${game.index + 1}`);
+        img !== null ? img.parentNode.removeChild(img) : null;
+        let fun = [
+            () => {
+                let game = this;
+                let img = document.getElementById(`player-cards-img-1`);
+                let path = "../../resources/cards/";
+                let i = (parseInt(img.alt, 10) + 1) % game.playersCards[0].length;
+                img.alt = i.toString();
+                img.src = path + game.playersCards[0][i].card + ".png";
+            },
+            () => {
+                let game = this;
+                let img = document.getElementById(`player-cards-img-2`);
+                let path = "../../resources/cards/";
+                let i = (parseInt(img.alt, 10) + 1) % game.playersCards[1].length;
+                img.alt = i.toString();
+                img.src = path + game.playersCards[1][i].card + ".png";
+            },
+            () => {
+                let game = this;
+                let img = document.getElementById(`player-cards-img-3`);
+                let path = "../../resources/cards/";
+                let i = (parseInt(img.alt, 10) + 1) % game.playersCards[2].length;
+                img.alt = i.toString();
+                img.src = path + game.playersCards[2][i].card + ".png";
+            }
+        ];
+        game.playersCards.forEach((cards, index) => {
+            let box = document.getElementById(`player-cards-${index + 1}`);
+            let img = document.createElement("img");
+            img.onclick = () => fun[index]();
+            img.alt = "0";
+            img.src = "../../resources/cards/" + cards[0].card + ".png";
+            img.id = `player-cards-img-${index + 1}`;
+            img.className = "game-cards-img";
+            box.appendChild(img);
+        })
+    }
+
+    showCards(index, client) {
+        let box = document.getElementById(`player-cards-${index + 1}`);
+        let img = document.createElement("img");
+        img.onclick = () => client.game.onClickCards();
+        img.alt = "0";
+        img.src = "../../resources/cards/" + this.hands[0].card + ".png";
+        img.id = `player-cards-img-${index + 1}`;
+        img.className = "game-cards-img";
+        box.appendChild(img);
+    }
+
+    onClickCards() {
+        let game = this;
+        let img = document.getElementById(`player-cards-img-${game.index + 1}`);
+        let path = "../../resources/cards/";
+        let i = (parseInt(img.alt, 10) + 1) % game.hands.length;
+        img.alt = i.toString();
+        img.src = path + game.hands[i].card + ".png";
     }
 }
 module.exports = Game;

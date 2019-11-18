@@ -82,7 +82,7 @@ class Client {
                         cards: encoded_message
                     };
                     console.log(data_1);
-                    client.sendMessage(data_1);
+                    client.sendMessage(data_1, 1000);
                     console.log(`[STEP_4] -> ${client.name}`);
                     let data_2 = {
                         name: client.name,
@@ -91,7 +91,7 @@ class Client {
                         cards: cards
                     };
                     console.log(data_2);
-                    client.sendMessage(data_2);
+                    client.sendMessage(data_2, 2000);
                 } else if (obj.event === "Step_3") {
                     client.game.Eb = obj.cards;
                 } else if (obj.event === "Step_4") {
@@ -106,7 +106,7 @@ class Client {
                         event: "Step_5",
                         cards: encoded_message
                     };
-                    client.sendMessage(data);
+                    client.sendMessage(data, 1000);
                 } else if (obj.event === "Step_5") {
                     console.log(`[STEP_6] -> ${client.name}`);
                     client.game.Ec = obj.cards;
@@ -124,7 +124,7 @@ class Client {
                         cards: decoded_message_Eb
                     };
                     console.log(data_1);
-                    client.sendMessage(data_1);
+                    client.sendMessage(data_1, 1000);
                     let data_2 = {
                         name: client.name,
                         recipient: client.game.players[2],
@@ -132,23 +132,52 @@ class Client {
                         cards: decoded_message_Ec
                     };
                     console.log(data_2);
-                    client.sendMessage(data_2);
+                    client.sendMessage(data_2, 2000);
                 } else if (obj.event === "Step_6") {
                     console.log(`[STEP_7] -> ${client.name}`);
-                    let messages = [];
-                    let decoded_messages = obj.cards.map(message =>
-                        message.map(value => modExponentiation(value, client.d, client.n))
-                    );
-                    console.log(decoded_messages);
-                    decoded_messages.forEach(message => {
-                        let result = "";
-                        message.forEach(m => {
-                            result += String.fromCharCode(m);
-                        });
-                        messages.push(result);
-                    });
-                    console.log(messages);
+                    client.game.hands = client.decryptMessage(obj.cards, client.d, client.n);
+                    client.game.showCards(client.game.index, client);
+                    console.log("Cards in hand:", client.game.hands);
+                    if (client.game.index === 2) {
+                        let cards = [];
+                        for (let i = 0; i < 5; i++) {
+                            let random = getRandomInRange(0, client.game.cards.length - 1);
+                            cards.push(...client.game.cards.splice(random, 1));
+                        }
+                        let data = {
+                            name: client.name,
+                            recipient: client.game.players[0],
+                            event: "Step_7",
+                            cards: cards
+                        };
+                        client.sendMessage(data, 1000);
+                    }
+                } else if (obj.event === "Step_7") {
+                    console.log(`[STEP_8] -> ${client.name}`);
+                    client.game.hands = client.decryptMessage(obj.cards, client.d, client.n);
+                    client.game.showCards(client.game.index, client);
+                    console.log("Cards in hand:", client.game.hands);
+                    client.sendMessage({end: true}, 5000)
                 }
+            } else if (obj.end) {
+                client.game.stage = "END";
+                if (client.game.index !== null) {
+                    let data = {
+                        name: client.name,
+                        event: "END",
+                        keys: {
+                          public_key: [client.e, client.n],
+                          private_key: [client.d, client.n]
+                        },
+                        cards: client.game.hands
+                    };
+                    client.sendMessage(data, (client.game.index + 1) * 1000);
+                }
+            } else if (obj.player_cards) {
+                console.log("Player cards:", obj.player_cards);
+                console.log("Player keys:", obj.keys);
+                client.game.playersCards = obj.player_cards;
+                client.game.showPlayersCards();
             } else if (obj.state) {
                 if (obj.players)
                     for (let i = 0; i < 3; i++) {
@@ -195,17 +224,28 @@ class Client {
         );
     }
 
-    decryptMessage(message, d, n) {
-        let result = "";
-        message.forEach(m => {
-           result += String.fromCharCode(modExponentiation(m, d, n));
+    decryptMessage(messages, d, n) {
+        let cards = [];
+        console.log(messages);
+        let decoded_messages = messages.map(message =>
+            message.map(value => modExponentiation(value, d, n))
+        );
+        decoded_messages.forEach(message => {
+            let result = "";
+            message.forEach(m => {
+                result += String.fromCharCode(m);
+            });
+            cards.push(JSON.parse(result));
         });
-        return result;
+        return cards
     }
 
-    sendMessage(data) {
+    sendMessage(data, time) {
         let client = this;
-        client.socket.write(JSON.stringify(data));
+        const send = (data) => {
+            client.socket.write(JSON.stringify(data));
+        };
+        setTimeout(() => send(data), time);
     }
 
     getPrimeNumber(left, right) {

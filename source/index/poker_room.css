@@ -17,6 +17,14 @@
 }
 .game-space {
     height: 100%;
+    display: flex;
+    flex-direction: column-reverse;
+}
+.game-cards-space {
+    display: flex;
+    flex: 0 3 auto;
+    flex-direction: row;
+    height: 55%;
 }
 .player-space {
     display: flex;
@@ -33,6 +41,13 @@
     background: #4d384b;
     font-size: 20px;
 }
+.cards-box {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    flex: 0 4 100%;
+    background: transparent;
+}
 .player-avatar {
     height: 100%;
     flex: 0 2 auto;
@@ -46,6 +61,11 @@
     color: white;
     text-align: center;
     user-select: none;
+}
+.game-cards-img{
+    cursor: pointer;
+    block-size: 100%;
+    margin: auto;
 }
 #player-avatar-1 {
     background: url(../../resources/images/avatar-1.png) no-repeat center;

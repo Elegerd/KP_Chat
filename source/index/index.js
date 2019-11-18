@@ -10,7 +10,3 @@ function connectServer() {
     auth.parentNode.removeChild(auth);
     document.getElementById("poker").style.display = "flex"
 }
-
-function startProtocol() {
-
-}
